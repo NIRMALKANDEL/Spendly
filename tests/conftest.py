@@ -8,7 +8,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app  # noqa: E402
 from database.db import get_db  # noqa: E402
-from services.security import login_throttle  # noqa: E402
+from services.backup import reset_daily_check  # noqa: E402
+from services.security import email_ip_throttle, email_throttle, login_throttle  # noqa: E402
 
 TODAY = date(2026, 9, 15)
 CSRF = "test-csrf-token"
@@ -22,10 +23,21 @@ def app(tmp_path):
         "SECRET_KEY": "test-secret",
         "DATABASE": str(tmp_path / "test.db"),
         "FIXED_TODAY": TODAY,
+        "MAIL_BACKEND": "memory",
+        "BACKUP_DIR": str(tmp_path / "backups"),
+        "SERVER_NAME": "spendly.test",
     })
-    login_throttle.clear()
+    throttles = (login_throttle, email_throttle, email_ip_throttle)
+    for t in throttles:
+        t.clear()
+    reset_daily_check()
     yield app
-    login_throttle.clear()
+    for t in throttles:
+        t.clear()
+
+
+def outbox(app):
+    return app.extensions.setdefault("mail_outbox", [])
 
 
 class Client:

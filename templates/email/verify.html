@@ -1,0 +1,8 @@
+{% extends "email/_layout.html" %}
+{% block body %}
+<p>Hi {{ name }},</p>
+<p>Please confirm your email address so you can recover your account if you ever forget your password.</p>
+<p style="margin:24px 0;"><a href="{{ link }}" style="background:#0f0f0f;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:6px;display:inline-block;">Confirm my email</a></p>
+<p style="font-size:13px;color:#6b6b6b;">This link is valid for 3 days. If the button doesn't work, copy this address into your browser:<br><span style="word-break:break-all;">{{ link }}</span></p>
+<p style="font-size:13px;color:#6b6b6b;">Didn't create a Spendly account? You can safely ignore this email.</p>
+{% endblock %}

@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS users (
     accent               TEXT,
     monthly_budget_cents INTEGER NOT NULL DEFAULT 0 CHECK (monthly_budget_cents >= 0),
     is_demo              INTEGER NOT NULL DEFAULT 0,
+    email_verified       INTEGER NOT NULL DEFAULT 0,
+    verification_sent_at TEXT,
     created_at           TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -89,10 +91,26 @@ def close_db(_exc=None):
         db.close()
 
 
+# Columns added after the first release. CREATE TABLE IF NOT EXISTS won't add
+# them to an existing database, so they are applied here, idempotently.
+MIGRATIONS = [
+    ("users", "email_verified", "INTEGER NOT NULL DEFAULT 0"),
+    ("users", "verification_sent_at", "TEXT"),
+]
+
+
+def migrate(db):
+    for table, column, definition in MIGRATIONS:
+        existing = {row["name"] for row in db.execute(f"PRAGMA table_info({table})")}
+        if column not in existing:
+            db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
 def init_db():
     Path(current_app.config["DATABASE"]).parent.mkdir(parents=True, exist_ok=True)
     db = get_db()
     db.executescript(SCHEMA)
+    migrate(db)
     db.commit()
 
 
@@ -221,9 +239,21 @@ def seed_db_command(email, password):
     click.echo(f"Seeded {email} / {password}")
 
 
+@click.command("backup-db")
+def backup_db_command():
+    """Snapshot the database into BACKUP_DIR (run daily from a scheduler)."""
+    from services.backup import create_backup, list_backups
+
+    cfg = current_app.config
+    path = create_backup(cfg["DATABASE"], cfg["BACKUP_DIR"], cfg["BACKUP_KEEP"])
+    click.echo(f"Backup written to {path}")
+    click.echo(f"{len(list_backups(cfg['BACKUP_DIR']))} backups kept in {cfg['BACKUP_DIR']}")
+
+
 def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
     app.cli.add_command(seed_db_command)
+    app.cli.add_command(backup_db_command)
     with app.app_context():
         init_db()

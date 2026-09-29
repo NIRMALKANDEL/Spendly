@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Forgot password — Spendly{% endblock %}
+
+{% block public_content %}
+<section class="auth-section">
+    <div class="auth-container">
+        <div class="auth-header">
+            <h1 class="auth-title">Forgot your password?</h1>
+            <p class="auth-subtitle">We'll email you a link to choose a new one.</p>
+        </div>
+
+        <div class="auth-card">
+            {% if unavailable %}
+            <div class="auth-error" role="alert">Password reset by email isn't available on this server yet.
+                {% if contact_email %}Please contact <a href="mailto:{{ contact_email }}">{{ contact_email }}</a> for help.{% endif %}</div>
+            {% elif sent %}
+            <div class="notice-success" role="status">
+                {{ m.icon("check", 18) }}
+                <div>
+                    <strong>Check your inbox.</strong>
+                    <p>If an account exists for <strong>{{ email }}</strong>, a reset link is on its way. It expires in 1 hour.
+                       Don't see it? Check your spam folder.</p>
+                </div>
+            </div>
+            {% else %}
+            {% if error %}<div class="auth-error" role="alert">{{ error }}</div>{% endif %}
+            <form method="POST" action="{{ url_for('auth.forgot_password') }}">
+                {{ m.csrf() }}
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <input type="email" id="email" name="email" class="form-input" value="{{ email }}"
+                           placeholder="you@example.com" autocomplete="email" required autofocus>
+                </div>
+                <button type="submit" class="btn-submit">Send reset link</button>
+            </form>
+            {% endif %}
+        </div>
+
+        <p class="auth-switch">Remembered it? <a href="{{ url_for('auth.login') }}">Back to sign in</a></p>
+    </div>
+</section>
+{% endblock %}

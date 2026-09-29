@@ -82,6 +82,9 @@
                     {{ m.csrf() }}
                     <button type="submit" class="side-link side-logout">{{ m.icon("logout") }}<span>Sign out</span></button>
                 </form>
+                <div class="sidebar-legal">
+                    <a href="{{ url_for('main.privacy') }}">Privacy</a> · <a href="{{ url_for('main.terms') }}">Terms</a>
+                </div>
             </div>
         </aside>
         <div class="sidebar-scrim" data-nav-close hidden></div>
@@ -89,6 +92,17 @@
         <main class="app-main" id="main">
             {% if current_user.is_demo %}
             <div class="demo-banner">{{ m.icon("info", 16) }} Demo account — sample data, deleted automatically after 24 hours. <a href="{{ url_for('auth.register') }}">Create your own account</a></div>
+            {% endif %}
+            {% if mail_enabled and not current_user.is_demo and not current_user.email_verified %}
+            <div class="verify-banner">
+                {{ m.icon("info", 16) }}
+                <span>Please confirm your email <strong>{{ current_user.email }}</strong> so you can reset your password if you forget it.</span>
+                <form method="POST" action="{{ url_for('auth.resend_verification') }}">
+                    {{ m.csrf() }}
+                    <input type="hidden" name="next" value="{{ request.full_path }}">
+                    <button type="submit" class="link">Resend link</button>
+                </form>
+            </div>
             {% endif %}
             {% include "_flashes.html" %}
             {% block content %}{% endblock %}
@@ -133,6 +147,11 @@
             <span class="brand-icon">◈</span>
             <span class="footer-name">Spendly</span>
             <p class="footer-copy">Track every rupee. Own your finances.</p>
+            <nav class="footer-links" aria-label="Legal">
+                <a href="{{ url_for('main.privacy') }}">Privacy</a>
+                <a href="{{ url_for('main.terms') }}">Terms</a>
+                <a href="{{ url_for('main.calculators') }}">Calculators</a>
+            </nav>
         </div>
     </footer>
 {% endif %}

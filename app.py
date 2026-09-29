@@ -8,7 +8,9 @@ from config import INSTANCE_DIR, Config, load_secret_key
 from database import db as database
 from routes import analytics, auth, budgets, goals, main, recurring, settings, transactions
 from services import categories
+from services.backup import ensure_daily_backup
 from services.dates import today
+from services.mailer import mail_enabled
 from services.money import cents_to_input, format_money
 from services.recurring import run_due
 from services.security import csrf_protect, csrf_token, set_security_headers
@@ -39,6 +41,8 @@ def create_app(test_config=None):
     def before_request():
         if request.endpoint == "static":
             return
+        if app.config["AUTO_BACKUP"] and not app.config.get("TESTING"):
+            ensure_daily_backup(app.config["DATABASE"], app.config["BACKUP_DIR"], app.config["BACKUP_KEEP"])
         csrf_protect()
         auth.load_logged_in_user()
         if g.user is not None:
@@ -56,6 +60,8 @@ def create_app(test_config=None):
             "theme": theme,
             "themes": categories.THEMES,
             "currencies": categories.CURRENCIES,
+            "mail_enabled": mail_enabled(),
+            "contact_email": app.config.get("CONTACT_EMAIL"),
         }
 
     @app.template_filter("money")

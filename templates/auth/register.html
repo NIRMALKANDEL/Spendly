@@ -41,6 +41,9 @@
                     <input type="password" id="confirm_password" name="confirm_password" class="form-input"
                            placeholder="Repeat password" autocomplete="new-password" required>
                 </div>
+                <p class="field-hint consent">By creating an account you agree to the
+                    <a href="{{ url_for('main.terms') }}" class="link">terms of use</a> and
+                    <a href="{{ url_for('main.privacy') }}" class="link">privacy policy</a>.</p>
                 <button type="submit" class="btn-submit">Create account</button>
             </form>
         </div>

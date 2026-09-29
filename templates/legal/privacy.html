@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Privacy policy — Spendly{% endblock %}
+
+{% macro body() %}
+<article class="legal">
+    <p class="eyebrow">Last updated 30 September 2026</p>
+    <h1 class="page-title">Privacy policy</h1>
+    <p class="lead">Spendly is a personal finance tracker. Your financial data is yours: we store it only so you can use the app,
+       we never sell it, and you can export or delete it at any time.</p>
+
+    <h2>What we collect</h2>
+    <ul>
+        <li><strong>Account details:</strong> your name, email address and a password. The password is stored only as a
+            one-way scrypt hash — nobody, including us, can read it.</li>
+        <li><strong>What you enter:</strong> transactions (amount, category, date, description), budgets, savings goals,
+            recurring items and your display preferences (currency, theme).</li>
+        <li><strong>Technical data:</strong> a session cookie that keeps you signed in, and standard server logs
+            (IP address, time, page requested) kept by our hosting provider for security and troubleshooting.</li>
+    </ul>
+    <p>We do <strong>not</strong> connect to your bank, ask for card or account numbers, or use advertising or tracking cookies.</p>
+
+    <h2>How we use it</h2>
+    <ul>
+        <li>To show you your dashboard, analytics, budgets and goals.</li>
+        <li>To send account emails you need: confirming your address and resetting your password. No marketing emails.</li>
+        <li>To keep the service secure, e.g. limiting repeated failed sign-in attempts.</li>
+    </ul>
+
+    <h2>Who can see it</h2>
+    <p>Only you, when signed in. Each account's data is kept separate and the app refuses requests for records that
+       belong to someone else. We don't sell, rent or share your data with third parties. It is stored on our hosting
+       provider's servers, and emails are delivered through an email provider — both only process data to run the
+       service. We may disclose data if required by law.</p>
+
+    <h2>Security</h2>
+    <p>Connections are encrypted with HTTPS. Passwords are hashed, forms are protected against cross-site request forgery,
+       and the database is backed up daily. No system is perfectly secure, so please use a unique password.</p>
+
+    <h2>How long we keep it</h2>
+    <p>Your data is kept while your account exists. When you delete your account (Settings → Delete account), your
+       data is removed immediately from the live database; copies in rolling daily backups are overwritten within
+       about two weeks. Demo accounts are deleted automatically after 24 hours.</p>
+
+    <h2>Your choices and rights</h2>
+    <ul>
+        <li><strong>Access &amp; portability:</strong> download everything as CSV or JSON from Settings → Your data.</li>
+        <li><strong>Correction:</strong> edit any entry, your name or your email at any time.</li>
+        <li><strong>Deletion:</strong> delete your account and all its data from Settings.</li>
+    </ul>
+
+    <h2>Cookies</h2>
+    <p>One essential cookie keeps you signed in and protects forms. If you're not signed in, your light/dark choice is
+       saved in your browser's local storage. There are no analytics or advertising cookies.</p>
+
+    <h2>Children</h2>
+    <p>Spendly isn't intended for children under 13, and we don't knowingly collect their data.</p>
+
+    <h2>Changes</h2>
+    <p>If this policy changes in a meaningful way, we'll update the date above and let signed-in users know in the app.</p>
+
+    <h2>Contact</h2>
+    <p>{% if contact_email %}Questions or requests: <a class="link" href="mailto:{{ contact_email }}">{{ contact_email }}</a>.
+       {% else %}Questions or requests can be sent to the site owner.{% endif %}</p>
+
+    <p class="muted small">See also the <a class="link" href="{{ url_for('main.terms') }}">terms of use</a>.</p>
+</article>
+{% endmacro %}
+
+{% block content %}{{ body() }}{% endblock %}
+{% block public_content %}<div class="public-page">{{ body() }}</div>{% endblock %}

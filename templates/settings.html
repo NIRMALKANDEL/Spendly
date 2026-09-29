@@ -13,6 +13,7 @@
 
 <nav class="settings-nav chips">
     <a href="#profile" class="chip">Profile</a>
+    {% if not current_user.is_demo %}<a href="#email" class="chip">Email</a>{% endif %}
     <a href="#appearance" class="chip">Appearance</a>
     <a href="#security" class="chip">Security</a>
     <a href="#data" class="chip">Your data</a>
@@ -40,6 +41,38 @@
         <div class="form-actions"><button type="submit" class="btn-primary">Save profile</button></div>
     </form>
 </section>
+
+{% if not current_user.is_demo %}
+<section class="card" id="email">
+    <div class="card-head">
+        <h2 class="card-title">Email address</h2>
+        {% if current_user.email_verified %}<span class="status-tag status-good">{{ m.icon("check", 14) }} Confirmed</span>
+        {% elif mail_enabled %}<span class="status-tag status-warning">{{ m.icon("alert", 14) }} Not confirmed</span>{% endif %}
+    </div>
+    <p class="muted small">Currently <strong>{{ current_user.email }}</strong>. This is where password-reset links are sent.</p>
+    {% if mail_enabled and not current_user.email_verified %}
+    <form method="POST" action="{{ url_for('auth.resend_verification') }}" class="inline-form">
+        {{ m.csrf() }}
+        <input type="hidden" name="next" value="{{ url_for('settings.index') }}#email">
+        <button type="submit" class="btn-ghost btn-sm">Resend confirmation link</button>
+    </form>
+    {% endif %}
+    <form method="POST" action="{{ url_for('settings.change_email') }}" class="email-form">
+        {{ m.csrf() }}
+        <div class="form-row">
+            <div class="form-group">
+                <label for="new_email">New email</label>
+                <input type="email" id="new_email" name="email" class="form-input" maxlength="254" autocomplete="email" required>
+            </div>
+            <div class="form-group">
+                <label for="email_password">Current password</label>
+                <input type="password" id="email_password" name="password" class="form-input" autocomplete="current-password" required>
+            </div>
+        </div>
+        <div class="form-actions"><button type="submit" class="btn-primary">Change email</button></div>
+    </form>
+</section>
+{% endif %}
 
 <section class="card" id="appearance">
     <h2 class="card-title">Appearance</h2>
@@ -105,7 +138,8 @@
 
 <section class="card" id="data">
     <h2 class="card-title">Your data</h2>
-    <p class="muted">{{ stats.count }} transactions{% if stats.first %} since {{ stats.first }}{% endif %}.</p>
+    <p class="muted">{{ stats.count }} transactions{% if stats.first %} since {{ stats.first }}{% endif %}.
+       Read how your data is handled in the <a class="link" href="{{ url_for('main.privacy') }}">privacy policy</a>.</p>
     <div class="button-row">
         <a href="{{ url_for('transactions.export_csv') }}" class="btn-ghost btn-sm">{{ m.icon("download", 16) }} Transactions (CSV)</a>
         <a href="{{ url_for('settings.export_json') }}" class="btn-ghost btn-sm">{{ m.icon("download", 16) }} Full backup (JSON)</a>

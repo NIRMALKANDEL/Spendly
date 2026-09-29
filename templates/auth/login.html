@@ -21,7 +21,10 @@
                            placeholder="you@example.com" autocomplete="email" required autofocus>
                 </div>
                 <div class="form-group">
-                    <label for="password">Password</label>
+                    <div class="label-row">
+                        <label for="password">Password</label>
+                        {% if mail_enabled %}<a href="{{ url_for('auth.forgot_password') }}" class="link small">Forgot password?</a>{% endif %}
+                    </div>
                     <div class="password-field">
                         <input type="password" id="password" name="password" class="form-input"
                                placeholder="Your password" autocomplete="current-password" required>

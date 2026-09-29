@@ -87,3 +87,13 @@ def calculators():
         if spent:
             avg_expense = round(spent / 3 / 100)
     return render_template("calculators.html", avg_expense=avg_expense)
+
+
+@bp.route("/privacy")
+def privacy():
+    return render_template("legal/privacy.html")
+
+
+@bp.route("/terms")
+def terms():
+    return render_template("legal/terms.html")

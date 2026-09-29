@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Terms of use — Spendly{% endblock %}
+
+{% macro body() %}
+<article class="legal">
+    <p class="eyebrow">Last updated 30 September 2026</p>
+    <h1 class="page-title">Terms of use</h1>
+    <p class="lead">By creating an account or using Spendly you agree to these terms. They're short — please read them.</p>
+
+    <h2>1. The service</h2>
+    <p>Spendly is a free tool for recording and analysing your own income, expenses, budgets and savings goals.
+       It is provided “as is”, and features may change or be discontinued.</p>
+
+    <h2>2. Not financial advice</h2>
+    <p>Insights, projections and calculators are estimates based on the numbers you enter and simple assumptions
+       (for example, a constant rate of return). They are not financial, investment, tax or legal advice. Make
+       important decisions with a qualified professional.</p>
+
+    <h2>3. Your account</h2>
+    <ul>
+        <li>Provide a real email address you control, so you can recover your account.</li>
+        <li>Keep your password secret and use one you don't use elsewhere. You're responsible for activity on your account.</li>
+        <li>Tell us promptly if you think someone else has accessed it.</li>
+    </ul>
+
+    <h2>4. Acceptable use</h2>
+    <p>Don't misuse the service: no attempts to access other people's data, break or overload the service, upload
+       malicious files, or use it for anything unlawful. We may suspend accounts that do.</p>
+
+    <h2>5. Your data</h2>
+    <p>You own the data you enter. You give us permission to store and process it only to provide the service to you,
+       as described in the <a class="link" href="{{ url_for('main.privacy') }}">privacy policy</a>. You can export or
+       delete it at any time.</p>
+
+    <h2>6. Availability and backups</h2>
+    <p>We back up the database daily and try to keep Spendly available, but we can't guarantee uninterrupted service or
+       that data will never be lost. Export a backup from Settings from time to time.</p>
+
+    <h2>7. Liability</h2>
+    <p>To the extent permitted by law, Spendly and its operator aren't liable for indirect or consequential losses,
+       or for decisions made based on information shown in the app.</p>
+
+    <h2>8. Ending</h2>
+    <p>You can stop using Spendly and delete your account at any time. We may close inactive or abusive accounts after
+       reasonable notice where possible.</p>
+
+    <h2>9. Changes</h2>
+    <p>We may update these terms; the date above shows the latest version. Continuing to use Spendly after a change
+       means you accept the updated terms.</p>
+
+    <h2>Contact</h2>
+    <p>{% if contact_email %}<a class="link" href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% else %}Contact the site owner with any questions.{% endif %}</p>
+</article>
+{% endmacro %}
+
+{% block content %}{{ body() }}{% endblock %}
+{% block public_content %}<div class="public-page">{{ body() }}</div>{% endblock %}

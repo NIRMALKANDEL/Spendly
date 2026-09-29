@@ -7,10 +7,14 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database.db import get_db
-from routes.auth import validate_name, validate_password
+from routes.auth import (
+    get_user, send_verification_email, validate_email, validate_name, validate_password,
+)
 from services.categories import CURRENCIES, MODES, THEMES
 from services.dates import today
-from services.security import login_required
+from services.mailer import mail_enabled
+from services.security import email_throttle, login_required
+from services.tokens import session_fingerprint
 
 bp = Blueprint("settings", __name__, url_prefix="/settings")
 
@@ -25,7 +29,7 @@ def index():
     stats = db.execute(
         "SELECT COUNT(*) AS count, MIN(date) AS first FROM transactions WHERE user_id = ?", (uid,)
     ).fetchone()
-    return render_template("settings.html", stats=stats, modes=MODES)
+    return render_template("settings.html", stats=stats, modes=MODES, mail_enabled=mail_enabled())
 
 
 @bp.route("/profile", methods=["POST"])
@@ -95,8 +99,39 @@ def password():
         db.execute("UPDATE users SET password_hash = ? WHERE id = ?",
                    (generate_password_hash(new), g.user["id"]))
         db.commit()
-        flash("Password changed.", "success")
+        # Keep this device signed in; every other session now has a stale fingerprint.
+        session["fp"] = session_fingerprint(get_user(g.user["id"]))
+        flash("Password changed. Other devices have been signed out.", "success")
     return redirect(url_for("settings.index") + "#security")
+
+
+@bp.route("/email", methods=["POST"])
+@login_required
+def change_email():
+    user = g.user
+    new_email = request.form.get("email", "").strip().lower()
+    if user["is_demo"]:
+        flash("Demo accounts can't change their email.", "error")
+    elif not check_password_hash(user["password_hash"], request.form.get("password", "")):
+        flash("Your password is incorrect; email not changed.", "error")
+    elif error := validate_email(new_email):
+        flash(error, "error")
+    elif new_email == user["email"].lower():
+        flash("That's already your email address.", "info")
+    elif get_db().execute("SELECT 1 FROM users WHERE email = ?", (new_email,)).fetchone():
+        flash("Another account already uses that email.", "error")
+    else:
+        db = get_db()
+        db.execute("UPDATE users SET email = ?, email_verified = 0, verification_sent_at = NULL WHERE id = ?",
+                   (new_email, user["id"]))
+        db.commit()
+        message = "Email updated."
+        if mail_enabled():
+            email_throttle.record(f"email:{new_email}")
+            if send_verification_email(get_user(user["id"])):
+                message += f" We sent a confirmation link to {new_email}."
+        flash(message, "success")
+    return redirect(url_for("settings.index") + "#profile")
 
 
 @bp.route("/export.json")

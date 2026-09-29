@@ -60,13 +60,16 @@ def safe_next_url(target, fallback):
 
 
 class LoginThrottle:
-    """In-memory failed-login counter keyed by client IP and by email.
+    """In-memory attempt counter keyed by client IP and/or email.
 
     Adequate for a single-process deployment; a multi-worker setup would move
-    this into Redis or the database.
+    this into Redis or the database. Limits are read from app config so tests
+    and deployments can tune them.
     """
 
-    def __init__(self):
+    def __init__(self, max_setting="LOGIN_MAX_ATTEMPTS", window_setting="LOGIN_WINDOW_SECONDS"):
+        self.max_setting = max_setting
+        self.window_setting = window_setting
         self._failures = {}
         self._lock = threading.Lock()
 
@@ -78,16 +81,19 @@ class LoginThrottle:
         now = time.monotonic()
         with self._lock:
             return any(
-                len(self._recent(k, now, cfg["LOGIN_WINDOW_SECONDS"])) >= cfg["LOGIN_MAX_ATTEMPTS"]
+                len(self._recent(k, now, cfg[self.window_setting])) >= cfg[self.max_setting]
                 for k in keys
             )
 
     def record_failure(self, *keys):
         now = time.monotonic()
-        window = current_app.config["LOGIN_WINDOW_SECONDS"]
+        window = current_app.config[self.window_setting]
         with self._lock:
             for key in keys:
                 self._failures[key] = self._recent(key, now, window) + [now]
+
+    # Counting sent emails uses the same bookkeeping as counting failures.
+    record = record_failure
 
     def reset(self, *keys):
         with self._lock:
@@ -100,6 +106,9 @@ class LoginThrottle:
 
 
 login_throttle = LoginThrottle()
+# Password-reset / verification emails: limited per address and, more loosely, per IP.
+email_throttle = LoginThrottle("EMAIL_MAX_PER_WINDOW", "LOGIN_WINDOW_SECONDS")
+email_ip_throttle = LoginThrottle("EMAIL_IP_MAX_PER_WINDOW", "LOGIN_WINDOW_SECONDS")
 
 
 # ------------------------------------------------------------------ #
