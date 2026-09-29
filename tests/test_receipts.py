@@ -30,6 +30,14 @@ def saved(app):
         return get_db().execute("SELECT * FROM transactions ORDER BY id").fetchall()
 
 
+def review_first(app):
+    """Turn auto-save off so clear receipts show the review form."""
+    with app.app_context():
+        db = get_db()
+        db.execute("UPDATE users SET auto_save_receipts = 0")
+        db.commit()
+
+
 def save_from_receipt(client, **overrides):
     data = {"source": "receipt", "kind": "expense", "amount": "250", "category": "Food",
             "date": "2026-09-12", "description": "Swiggy", "reference": "425612345678"}
@@ -53,7 +61,8 @@ def test_scan_page_renders_with_local_ocr(auth_client):
     assert b"never uploaded" in page
 
 
-def test_review_prefills_form_from_ocr_text(auth_client):
+def test_review_prefills_form_from_ocr_text(app, auth_client):
+    review_first(app)
     resp = auth_client.post("/receipts/review", {"mode": "ocr", "text": GPAY_TEXT})
     assert resp.status_code == 200
     page = resp.get_data(as_text=True)
@@ -67,6 +76,7 @@ def test_review_prefills_form_from_ocr_text(auth_client):
 
 
 def test_review_nothing_is_saved_until_confirmed(app, auth_client):
+    review_first(app)
     auth_client.post("/receipts/review", {"mode": "ocr", "text": GPAY_TEXT})
     assert saved(app) == []
 
@@ -254,6 +264,7 @@ def test_ai_request_shape(app):
 def test_ai_review_route(app, auth_client, monkeypatch):
     fake = FakeClient(AI_REPLY)
     enable_ai(app, monkeypatch, fake)
+    review_first(app)
     assert b'data-ai="1"' in auth_client.get("/receipts/scan").data
     resp = auth_client.post("/receipts/review", {"mode": "ai", "image": (io.BytesIO(JPEG_BYTES), "r.jpg")},
                             content_type="multipart/form-data")
@@ -302,3 +313,107 @@ def test_ai_output_is_revalidated(app):
         r = extract_receipt(PNG_BYTES, "image/png", TODAY, client=FakeClient(hostile))
     assert r.amount_cents is None and r.date is None and r.payee is None
     assert r.reference == "DROPTABLE" and r.category == "Other"
+
+
+
+# ------------------------------------------------------------------ #
+# Auto-save + undo                                                    #
+# ------------------------------------------------------------------ #
+
+def test_clear_receipt_is_auto_saved_with_undo(app, auth_client):
+    resp = auth_client.post("/receipts/review", {"mode": "ocr", "text": GPAY_TEXT})
+    assert resp.status_code == 302 and resp.location.endswith("/dashboard")
+    row = saved(app)[0]
+    assert (row["amount_cents"], row["description"], row["reference"]) == (25000, "Swiggy", "425612345678")
+    dash = auth_client.get("/dashboard").get_data(as_text=True)
+    assert "Saved ₹250 · Swiggy · Food" in dash and ">Undo<" in dash
+    assert "Saved ₹250" not in auth_client.get("/dashboard").get_data(as_text=True)  # shown once
+
+
+def test_undo_removes_the_auto_saved_transaction(app, auth_client):
+    auth_client.post("/receipts/review", {"mode": "ocr", "text": GPAY_TEXT})
+    tx_id = saved(app)[0]["id"]
+    resp = auth_client.post(f"/transactions/{tx_id}/delete", {"undo": "1", "next": "/dashboard"})
+    assert resp.location.endswith("/dashboard")
+    assert saved(app) == []
+    assert b"Undone" in auth_client.get("/dashboard").data
+
+
+def test_unclear_receipt_still_shows_form(app, auth_client):
+    # Amount without a rupee sign and no corroboration -> not confident.
+    resp = auth_client.post("/receipts/review", {"mode": "ocr", "text": "Paid to Ramesh\n85\nPayment successful"})
+    assert resp.status_code == 200 and b"Check and save" in resp.data
+    assert saved(app) == []
+
+
+def test_possible_duplicate_is_never_auto_saved(app, auth_client):
+    auth_client.post("/receipts/review", {"mode": "ocr", "text": GPAY_TEXT})
+    resp = auth_client.post("/receipts/review", {"mode": "ocr", "text": GPAY_TEXT})
+    assert resp.status_code == 200 and b"already saved this payment" in resp.data
+    assert len(saved(app)) == 1
+
+
+def test_auto_save_can_be_turned_off(app, auth_client):
+    auth_client.post("/settings/receipts", {})
+    resp = auth_client.post("/receipts/review", {"mode": "ocr", "text": GPAY_TEXT})
+    assert resp.status_code == 200
+    assert saved(app) == []
+    auth_client.post("/settings/receipts", {"auto_save_receipts": "1"})
+    assert auth_client.post("/receipts/review", {"mode": "ocr", "text": GPAY_TEXT}).status_code == 302
+
+
+def test_ai_read_receipt_is_auto_saved(app, auth_client, monkeypatch):
+    enable_ai(app, monkeypatch, FakeClient(AI_REPLY))
+    resp = auth_client.post("/receipts/review", {"mode": "ai", "image": (io.BytesIO(JPEG_BYTES), "r.jpg")},
+                            content_type="multipart/form-data")
+    assert resp.status_code == 302
+    assert saved(app)[0]["amount_cents"] == 48000
+
+
+# ------------------------------------------------------------------ #
+# Quick add                                                           #
+# ------------------------------------------------------------------ #
+
+def test_quick_add_saves_and_offers_undo(app, auth_client):
+    resp = auth_client.post("/transactions/quick", {"q": "lunch 180 yesterday", "next": "/dashboard"})
+    assert resp.location.endswith("/dashboard")
+    row = saved(app)[0]
+    assert (row["kind"], row["amount_cents"], row["category"], row["date"], row["description"]) ==         ("expense", 18000, "Food", "2026-09-14", "Lunch")
+    assert "Saved ₹180 · Lunch · Food" in auth_client.get("/dashboard").get_data(as_text=True)
+
+
+def test_quick_add_income(app, auth_client):
+    auth_client.post("/transactions/quick", {"q": "salary 65000"})
+    row = saved(app)[0]
+    assert (row["kind"], row["category"], row["amount_cents"]) == ("income", "Salary", 6500000)
+
+
+def test_quick_add_error_saves_nothing(app, auth_client):
+    auth_client.post("/transactions/quick", {"q": "lunch"})
+    assert saved(app) == []
+    assert b"Add an amount" in auth_client.get("/dashboard").data
+
+
+def test_quick_add_needs_csrf_and_login(app, auth_client):
+    assert auth_client.post("/transactions/quick", {"q": "250 tea"}, csrf=False).status_code == 400
+    signed_out = Client(app.test_client())
+    assert signed_out.post("/transactions/quick", {"q": "250 tea"}).status_code == 302
+    assert saved(app) == []
+
+
+def test_quick_add_rejects_offsite_next(app, auth_client):
+    resp = auth_client.post("/transactions/quick", {"q": "250 tea", "next": "https://evil.example"})
+    assert "evil" not in resp.location
+
+
+def test_quick_preview(auth_client):
+    data = auth_client.get("/transactions/quick/preview?q=250%20swiggy").json
+    assert data == {"ok": True, "kind": "expense", "amount": "₹250", "category": "Food", "date": "2026-09-15",
+                    "is_today": True, "description": "Swiggy", "when": "today"}
+    assert auth_client.get("/transactions/quick/preview?q=tea%2020%20yesterday").json["when"] == "yesterday"
+    assert auth_client.get("/transactions/quick/preview?q=tea%2020%20on%201%20sep").json["when"] == "Tue 1 Sep"
+    assert auth_client.get("/transactions/quick/preview?q=swiggy").json["ok"] is False
+
+
+def test_dashboard_has_quick_add(auth_client):
+    assert b"data-quick-add" in auth_client.get("/dashboard").data

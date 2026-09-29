@@ -1,0 +1,13 @@
+{% import "_macros.html" as m with context %}
+<form method="POST" action="{{ url_for('transactions.quick_add') }}" class="quick-add" data-quick-add autocomplete="off">
+    {{ m.csrf() }}
+    <input type="hidden" name="next" value="{{ request.full_path }}">
+    <label for="quick-q" class="visually-hidden">Quick add</label>
+    <div class="quick-row">
+        <span class="quick-icon">{{ m.icon("plus", 18) }}</span>
+        <input type="text" id="quick-q" name="q" class="quick-input" maxlength="200" enterkeyhint="done"
+               placeholder="Quick add… e.g. 250 swiggy" data-quick-input required>
+        <button type="submit" class="btn-primary btn-sm quick-save">Save</button>
+    </div>
+    <p class="quick-preview muted small" data-quick-preview aria-live="polite">Try “lunch 180 yesterday” or “salary 65000”, then press Enter.</p>
+</form>

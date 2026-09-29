@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     monthly_budget_cents INTEGER NOT NULL DEFAULT 0 CHECK (monthly_budget_cents >= 0),
     is_demo              INTEGER NOT NULL DEFAULT 0,
     email_verified       INTEGER NOT NULL DEFAULT 0,
+    auto_save_receipts   INTEGER NOT NULL DEFAULT 1,
     verification_sent_at TEXT,
     created_at           TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -98,6 +99,7 @@ MIGRATIONS = [
     ("users", "email_verified", "INTEGER NOT NULL DEFAULT 0"),
     ("users", "verification_sent_at", "TEXT"),
     ("transactions", "reference", "TEXT"),  # UPI transaction ID, used to spot duplicate receipts
+    ("users", "auto_save_receipts", "INTEGER NOT NULL DEFAULT 1"),
 ]
 
 

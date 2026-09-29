@@ -69,6 +69,18 @@ def appearance():
     return redirect(url_for("settings.index") + "#appearance")
 
 
+@bp.route("/receipts", methods=["POST"])
+@login_required
+def receipt_settings():
+    enabled = 1 if request.form.get("auto_save_receipts") else 0
+    db = get_db()
+    db.execute("UPDATE users SET auto_save_receipts = ? WHERE id = ?", (enabled, g.user["id"]))
+    db.commit()
+    flash("Receipts will be saved automatically when they're read clearly." if enabled
+          else "You'll review every receipt before it's saved.", "success")
+    return redirect(url_for("settings.index") + "#receipts")
+
+
 @bp.route("/mode", methods=["POST"])
 @login_required
 def mode():

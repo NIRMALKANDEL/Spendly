@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, g, render_template, request
+from flask import Flask, g, render_template, request, session
 from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -64,6 +64,7 @@ def create_app(test_config=None):
             "mail_enabled": mail_enabled(),
             "contact_email": app.config.get("CONTACT_EMAIL"),
             "receipt_ai": receipt_ai_enabled(),
+            "pop_undo": lambda: session.pop("undo", None),
         }
 
     @app.template_filter("money")

@@ -119,6 +119,11 @@ class Receipt:
     category: str = "Other"
     app: str | None = None
     found: set = field(default_factory=set)
+    amount_confident: bool = False
+
+    def is_clear(self):
+        """Everything needed to save without a review screen was read with confidence."""
+        return self.amount_confident and {"amount", "date", "payee"} <= self.found
 
     def to_form(self, today):
         """Values for the transaction form. Missing fields get safe defaults."""
@@ -153,6 +158,16 @@ def _to_cents(whole, frac):
 
 def find_amount(lines):
     """Best-guess payment amount in cents, or None."""
+    return find_amount_with_confidence(lines)[0]
+
+
+def find_amount_with_confidence(lines):
+    """(cents or None, confident).
+
+    Confident means the amount is backed by more than a bare number: a rupee sign
+    (or its usual OCR look-alike), the same value found twice, or the telltale
+    "₹349 read as 3349" twin. Only confident amounts are auto-saved.
+    """
     candidates = []  # (score, order, cents, raw)
     order = 0
     for i, line in enumerate(lines):
@@ -183,19 +198,21 @@ def find_amount(lines):
                     candidates.append((2, order, cents, m.group(0)))
                     order += 1
     if not candidates:
-        return None
+        return None, False
     candidates.sort(key=lambda c: (-c[0], c[1]))
     best = candidates[0]
+    values = [c[2] for c in candidates]
     # "₹349" read as "3349": if the same number minus its first digit was also found,
     # the shorter one is the real amount.
-    values = {c[2] for c in candidates}
     whole, paise = divmod(best[2], 100)
     digits = str(whole)
     if len(digits) > 1 and digits[0] in RUPEE_DIGIT_MISREADS:
         shorter = int(digits[1:]) * 100 + paise
-        if shorter in values and shorter:
-            return shorter
-    return best[2]
+        if shorter and shorter in values:
+            return shorter, True
+    twins = {int(d + digits) * 100 + paise for d in RUPEE_DIGIT_MISREADS}
+    confident = best[0] >= 4 or values.count(best[2]) >= 2 or bool(twins & set(values))
+    return best[2], confident
 
 
 def _safe_date(year, month, day, today):
@@ -342,7 +359,7 @@ def parse_receipt_text(text, today):
     joined = "\n".join(lines)
     receipt = Receipt(kind=detect_kind(joined), app=detect_app(joined))
 
-    receipt.amount_cents = find_amount(lines)
+    receipt.amount_cents, receipt.amount_confident = find_amount_with_confidence(lines)
     day = find_date(lines, today)
     receipt.date = day.isoformat() if day else None
     receipt.payee = find_counterparty(lines, receipt.kind)
@@ -371,6 +388,7 @@ def receipt_from_fields(data, today):
         receipt.amount_cents = parse_amount(data.get("amount")) if data.get("amount") not in (None, "") else None
     except ValueError:
         receipt.amount_cents = None
+    receipt.amount_confident = receipt.amount_cents is not None
     raw_date = str(data.get("date") or "")
     try:
         parsed = date.fromisoformat(raw_date[:10])

@@ -1,3 +1,19 @@
+{% set undo = pop_undo() if current_user else None %}
+{% if undo %}
+<div class="undo-bar" role="status" aria-live="polite" data-flash data-sticky>
+    <span class="undo-text">{{ undo.text }}</span>
+    <div class="undo-actions">
+        <form method="POST" action="{{ url_for('transactions.delete', tx_id=undo.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="undo" value="1">
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+            <button type="submit" class="undo-btn">Undo</button>
+        </form>
+        <a href="{{ url_for('transactions.edit', tx_id=undo.id) }}" class="undo-btn">Edit</a>
+        <button type="button" class="flash-close" aria-label="Dismiss" data-flash-close>&times;</button>
+    </div>
+</div>
+{% endif %}
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 <div class="flashes" role="status" aria-live="polite">

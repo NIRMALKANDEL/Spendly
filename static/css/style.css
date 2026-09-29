@@ -713,6 +713,37 @@ select.form-input { appearance: none; background-image: linear-gradient(45deg, t
 .install-pill { padding: 0.35rem 0.7rem; gap: 0.3rem; }
 .install-help { margin: 0.5rem 0 0 1.1rem; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem; color: var(--ink-soft); }
 
+/* Quick add + undo */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.quick-add { margin-bottom: 1.25rem; }
+.quick-row {
+    display: flex; align-items: center; gap: 0.5rem; background: var(--paper-card); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 0.35rem 0.4rem 0.35rem 0.8rem; box-shadow: var(--shadow);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.quick-row:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.quick-icon { color: var(--accent-text, var(--accent)); display: flex; }
+.quick-input { flex: 1; min-width: 0; border: none; background: transparent; outline: none; font-size: 1rem; padding: 0.55rem 0; color: var(--ink); }
+.quick-input::placeholder { color: var(--ink-faint); }
+.quick-preview { margin: 0.4rem 0.2rem 0; min-height: 1.2em; }
+.quick-preview.quick-error { color: var(--warning); }
+.undo-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;
+    background: var(--ink); color: var(--paper); border-radius: var(--radius-sm); padding: 0.6rem 0.75rem 0.6rem 1rem;
+    margin-bottom: 1rem; font-size: 0.9rem; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); transition: opacity 0.2s;
+}
+.undo-bar.leaving { opacity: 0; }
+.undo-text { font-weight: 500; }
+.undo-actions { display: flex; align-items: center; gap: 0.25rem; }
+.undo-actions form { display: inline; }
+.undo-btn { color: var(--paper); font-weight: 700; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.undo-btn:hover { background: rgba(255, 255, 255, 0.12); }
+.undo-bar .flash-close { color: var(--paper); }
+@media (max-width: 600px) {
+    .quick-save { padding: 0.45rem 0.7rem; }
+    .quick-input::placeholder { font-size: 0.85rem; }
+}
+
 /* Flash messages */
 .flashes { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; }
 .flash {

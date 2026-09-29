@@ -124,7 +124,7 @@
         };
         var btn = $("[data-flash-close]", flash);
         if (btn) btn.addEventListener("click", close);
-        if (!flash.classList.contains("flash-error")) setTimeout(close, 6000);
+        if (!flash.classList.contains("flash-error") && !flash.hasAttribute("data-sticky")) setTimeout(close, 6000);
     });
 
     // ---------------------------------------------------------------- //
@@ -250,4 +250,35 @@
         });
     });
     renderInstallState();
+
+    // ---------------------------------------------------------------- //
+    // Quick add: live preview of what will be saved                     //
+    // ---------------------------------------------------------------- //
+    $$("[data-quick-add]").forEach(function (form) {
+        var input = $("[data-quick-input]", form);
+        var preview = $("[data-quick-preview]", form);
+        var hint = preview.textContent;
+        var timer = null, seq = 0;
+
+        function show(data) {
+            preview.classList.toggle("quick-error", !data.ok);
+            if (!data.ok) { preview.textContent = data.error; return; }
+            var when = data.when || data.date;
+            preview.textContent = (data.kind === "income" ? "Income " : "Expense ") + data.amount + " · " + data.category +
+                (data.description ? " · " + data.description : "") + " · " + when + "  ↵ to save";
+        }
+
+        input.addEventListener("input", function () {
+            clearTimeout(timer);
+            var q = input.value.trim();
+            if (!q) { preview.textContent = hint; preview.classList.remove("quick-error"); return; }
+            timer = setTimeout(function () {
+                var mine = ++seq;
+                fetch("/transactions/quick/preview?q=" + encodeURIComponent(q), { credentials: "same-origin" })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) { if (mine === seq) show(data); })
+                    .catch(function () { /* preview is optional */ });
+            }, 200);
+        });
+    });
 })();

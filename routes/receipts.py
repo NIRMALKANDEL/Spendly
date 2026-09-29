@@ -9,9 +9,11 @@ and read by Claude instead (services/receipt_ai.py).
 
 import base64
 
-from flask import Blueprint, current_app, g, render_template, request
+from flask import Blueprint, current_app, g, redirect, render_template, request, url_for
 
-from routes.transactions import find_duplicate, render_form
+from routes.transactions import (
+    find_duplicate, insert_transaction, offer_undo, render_form, validate_transaction,
+)
 from services.dates import today
 from services.receipt_ai import ReceiptAIError, ai_enabled, extract_receipt
 from services.receipts import MAX_TEXT_LENGTH, parse_receipt_text
@@ -89,6 +91,15 @@ def review():
         receipt, method = parse_receipt_text(text, now), ("ocr" if request.form.get("mode") == "ocr" else "text")
 
     form = receipt.to_form(now)
+    duplicate = find_duplicate(g.user["id"], receipt.reference)
+
+    # Clearly-read receipts are saved straight away, with Undo, when the user allows it.
+    if g.user["auto_save_receipts"] and receipt.is_clear() and not duplicate and not notice:
+        clean, error = validate_transaction(form)
+        if not error:
+            offer_undo(insert_transaction(g.user["id"], clean), clean)
+            return redirect(url_for("main.dashboard"))
+
     context = {
         "source": "receipt",
         "method": method,
@@ -97,7 +108,7 @@ def review():
         "text": text[:4000],
         "notice": notice,
     }
-    return render_form(form=form, receipt=context, duplicate=find_duplicate(g.user["id"], receipt.reference))
+    return render_form(form=form, receipt=context, duplicate=duplicate)
 
 
 @bp.route("/share", methods=["POST"])

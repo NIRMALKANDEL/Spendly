@@ -5,13 +5,14 @@ import re
 from datetime import timedelta
 
 from flask import (
-    Blueprint, Response, abort, flash, g, redirect, render_template, request, url_for,
+    Blueprint, Response, abort, flash, g, jsonify, redirect, render_template, request, session, url_for,
 )
 
 from database.db import get_db
 from services.categories import CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, KINDS
 from services.dates import MIN_DATE, parse_date, parse_optional_date, today
-from services.money import cents_to_input, parse_amount
+from services.money import cents_to_input, format_money, parse_amount
+from services.quickadd import parse_quick
 from services.security import login_required, safe_next_url
 
 bp = Blueprint("transactions", __name__, url_prefix="/transactions")
@@ -58,6 +59,26 @@ def validate_transaction(data):
         # UPI transaction ID from a scanned receipt; letters and digits only.
         "reference": re.sub(r"[^A-Za-z0-9]", "", data.get("reference") or "")[:40] or None,
     }, None
+
+
+def insert_transaction(user_id, clean):
+    """Save a validated transaction and return its id."""
+    db = get_db()
+    cur = db.execute(
+        "INSERT INTO transactions (user_id, kind, amount_cents, category, date, description, reference)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (user_id, clean["kind"], clean["amount_cents"], clean["category"], clean["date"],
+         clean["description"], clean.get("reference")),
+    )
+    db.commit()
+    return cur.lastrowid
+
+
+def offer_undo(tx_id, clean):
+    """Show the "Saved … Undo · Edit" bar on the next page."""
+    parts = [format_money(clean["amount_cents"], g.user["currency"]), clean["description"] or None, clean["category"]]
+    label = " · ".join(p for p in parts if p)
+    session["undo"] = {"id": tx_id, "text": f"{'Income' if clean['kind'] == 'income' else 'Saved'} {label}"}
 
 
 def find_duplicate(user_id, reference):
@@ -183,14 +204,7 @@ def create():
             return render_form(form=request.form, status=409, duplicate=duplicate,
                                receipt={"source": "receipt"} if from_receipt else None,
                                error="You've already saved a payment with this UPI reference.")
-        db = get_db()
-        db.execute(
-            "INSERT INTO transactions (user_id, kind, amount_cents, category, date, description, reference)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (g.user["id"], clean["kind"], clean["amount_cents"], clean["category"], clean["date"],
-             clean["description"], clean["reference"]),
-        )
-        db.commit()
+        insert_transaction(g.user["id"], clean)
         flash(f"{clean['kind'].title()} added.", "success")
         if from_receipt and request.form.get("add_another"):
             return redirect(url_for("receipts.scan"))
@@ -232,7 +246,7 @@ def delete(tx_id):
     db = get_db()
     db.execute("DELETE FROM transactions WHERE id = ? AND user_id = ?", (tx_id, g.user["id"]))
     db.commit()
-    flash("Transaction deleted.", "success")
+    flash("Undone. That transaction was removed." if request.form.get("undo") else "Transaction deleted.", "success")
     return redirect(safe_back(url_for("transactions.index")))
 
 
@@ -325,3 +339,48 @@ def import_csv():
     db.commit()
     flash(f"Imported {len(clean_rows)} transactions.", "success")
     return redirect(url_for("transactions.index"))
+
+
+# ------------------------------------------------------------------ #
+# Quick add                                                           #
+# ------------------------------------------------------------------ #
+
+def _quick(text):
+    fields, error = parse_quick(text, today())
+    if error:
+        return None, error
+    return validate_transaction(fields)
+
+
+@bp.route("/quick", methods=["POST"])
+@login_required
+def quick_add():
+    back = safe_back(url_for("main.dashboard"))
+    clean, error = _quick(request.form.get("q", ""))
+    if error:
+        flash(error, "error")
+        return redirect(back)
+    offer_undo(insert_transaction(g.user["id"], clean), clean)
+    return redirect(back)
+
+
+@bp.route("/quick/preview")
+@login_required
+def quick_preview():
+    """What a quick entry would save, shown live under the box as you type."""
+    clean, error = _quick(request.args.get("q", ""))
+    if error:
+        return jsonify(ok=False, error=error)
+    day = parse_date(clean["date"])
+    gap = (today() - day).days
+    when = {0: "today", 1: "yesterday"}.get(gap) or day.strftime("%a %d %b").replace(" 0", " ")
+    return jsonify(
+        when=when,
+        ok=True,
+        kind=clean["kind"],
+        amount=format_money(clean["amount_cents"], g.user["currency"]),
+        category=clean["category"],
+        date=clean["date"],
+        is_today=clean["date"] == today().isoformat(),
+        description=clean["description"],
+    )

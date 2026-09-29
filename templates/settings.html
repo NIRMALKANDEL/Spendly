@@ -15,6 +15,7 @@
     <a href="#profile" class="chip">Profile</a>
     {% if not current_user.is_demo %}<a href="#email" class="chip">Email</a>{% endif %}
     <a href="#appearance" class="chip">Appearance</a>
+    <a href="#receipts" class="chip">Receipts</a>
     <a href="#install" class="chip">Install app</a>
     <a href="#security" class="chip">Security</a>
     <a href="#data" class="chip">Your data</a>
@@ -108,6 +109,19 @@
             <p class="muted small">Changes preview instantly; save to keep them.</p>
         </fieldset>
         <div class="form-actions"><button type="submit" class="btn-primary">Save appearance</button></div>
+    </form>
+</section>
+
+<section class="card" id="receipts">
+    <h2 class="card-title">{{ m.icon("scan", 18) }} Receipts</h2>
+    <form method="POST" action="{{ url_for('settings.receipt_settings') }}">
+        {{ m.csrf() }}
+        <label class="checkbox">
+            <input type="checkbox" name="auto_save_receipts" value="1" {% if current_user.auto_save_receipts %}checked{% endif %}>
+            Save receipts automatically when the amount, date and payee are read clearly
+        </label>
+        <p class="muted small">You'll get an Undo button right after. Unclear receipts and possible duplicates always show the form first.</p>
+        <div class="form-actions"><button type="submit" class="btn-primary">Save</button></div>
     </form>
 </section>
 
