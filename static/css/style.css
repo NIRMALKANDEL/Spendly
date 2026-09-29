@@ -350,7 +350,7 @@ code, pre { font-family: ui-monospace, 'Cascadia Code', Menlo, monospace; font-s
 select.form-input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--ink-muted) 50%), linear-gradient(135deg, var(--ink-muted) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 2.25rem; }
 .input-sm { min-height: 36px; padding: 0.4rem 0.7rem; font-size: 0.95rem; }
 .input-amount { font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; min-height: 56px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
 .form-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem; }
 .checkbox { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--ink-soft); margin-bottom: 1rem; cursor: pointer; }
 .checkbox input { width: 16px; height: 16px; accent-color: var(--accent); }
@@ -654,8 +654,8 @@ select.form-input { appearance: none; background-image: linear-gradient(45deg, t
 .sidebar-legal { font-size: 0.75rem; color: var(--ink-faint); padding: 0 0.75rem; }
 .sidebar-legal a:hover { color: var(--ink); }
 .footer-links { display: flex; gap: 1.25rem; margin-top: 0.75rem; font-size: 0.8rem; }
-.footer-links a { color: var(--ink-faint); }
-.footer-links a:hover { color: var(--paper); }
+.footer-links a { color: #9a978f; }
+.footer-links a:hover { color: #f7f6f3; }
 .legal { max-width: 720px; }
 .legal .page-title { margin-bottom: 1rem; }
 .legal .lead { font-size: 1.05rem; color: var(--ink-soft); margin-bottom: 1.5rem; }
@@ -686,11 +686,12 @@ select.form-input { appearance: none; background-image: linear-gradient(45deg, t
 /* Footer                                                              */
 /* ------------------------------------------------------------------ */
 
-.footer { background: var(--ink); color: var(--paper); padding: 2.5rem 2rem; text-align: center; }
+/* The footer stays dark in both modes (an inverted footer glows in dark mode). */
+.footer { background: #0f0f0f; color: #f7f6f3; padding: 2.5rem 2rem; text-align: center; border-top: 1px solid var(--border); }
 .footer-inner { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
 .footer .brand-icon { color: var(--accent-2); font-size: 1.5rem; }
 .footer-name { font-weight: 600; font-size: 1rem; }
-.footer-copy { font-size: 0.8rem; color: var(--ink-faint); }
+.footer-copy { font-size: 0.8rem; color: #9a978f; }
 
 /* ------------------------------------------------------------------ */
 /* Responsive                                                          */

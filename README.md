@@ -1,23 +1,55 @@
-# ◈ Spendly — Personal Finance Tracker
+<div align="center">
 
-Track every rupee. Spendly is a full-stack personal finance app for logging expenses and income,
-setting budgets, analysing past spending, planning savings goals and running "what if" calculations —
-with editable themes, dark mode and a mobile-first layout.
+# ◈ Spendly
 
-![tests](https://github.com/NIRMALKANDEL/Spendly/actions/workflows/tests.yml/badge.svg)
-![python](https://img.shields.io/badge/python-3.12-blue)
-![flask](https://img.shields.io/badge/flask-3.1-black)
+**Track every rupee. Own your finances.**
 
-| Dashboard (dark) | Analytics (light) |
+A full-stack personal finance tracker — log expenses and income, set budgets, analyse past spending,
+plan savings goals and run “what if” calculations. Editable themes, dark mode, and built mobile-first.
+
+### 🌐 [Live app → devnirmal.pythonanywhere.com](https://devnirmal.pythonanywhere.com)
+
+[![Live demo](https://img.shields.io/badge/live%20demo-devnirmal.pythonanywhere.com-1a472a?style=for-the-badge)](https://devnirmal.pythonanywhere.com)
+
+![python](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)
+![flask](https://img.shields.io/badge/flask-3.1-000000?logo=flask)
+![sqlite](https://img.shields.io/badge/sqlite-003B57?logo=sqlite&logoColor=white)
+![chart.js](https://img.shields.io/badge/chart.js-4-FF6384?logo=chartdotjs&logoColor=white)
+![tests](https://img.shields.io/badge/tests-150%20passing-2ea44f)
+![coverage](https://img.shields.io/badge/coverage-96%25-2ea44f)
+![license](https://img.shields.io/badge/license-MIT-blue)
+
+[Features](#features) · [Screenshots](#screenshots) · [Security](#security) · [Tech stack](#tech-stack) ·
+[Run locally](#run-locally) · [Deploy](#deploy)
+
+</div>
+
+> **Try it without signing up:** open the [live app](https://devnirmal.pythonanywhere.com) and click
+> **“Try the live demo”**. You get a private sandbox with a year of realistic sample data (auto-deleted after 24 hours).
+
+![Spendly dashboard in dark mode](docs/dashboard-dark.png)
+
+---
+
+## Screenshots
+
+### Desktop
+
+| Analytics — trends, categories, weekdays | Transactions — search, filter, export |
 |---|---|
-| ![Dashboard](docs/dashboard-dark.png) | ![Analytics](docs/analytics-light.png) |
+| ![Analytics](docs/analytics-light.png) | ![Transactions](docs/transactions-light.png) |
+| **Budgets — overall + per category (Plum, dark)** | **Savings goals (Terracotta theme)** |
+| ![Budgets](docs/budgets-dark.png) | ![Goals](docs/goals-light.png) |
+| **Calculators — growth, goals, EMI** | **Editable themes & dark mode** |
+| ![Calculators](docs/calculators.png) | ![Theme settings](docs/themes.png) |
+| **Landing page** | **Account recovery** |
+| ![Landing](docs/landing.png) | ![Forgot password](docs/forgot-password.png) |
 
-| Mobile dashboard | Mobile goals | Landing |
-|---|---|---|
-| <img src="docs/mobile-dashboard.png" width="240"> | <img src="docs/mobile-goals.png" width="240"> | <img src="docs/landing.png" width="420"> |
+### Mobile
 
-> **Try it without signing up:** click **“Try the live demo”** on the landing page. It creates a private
-> sandbox account with a year of realistic sample data (auto-deleted after 24 hours).
+| Dashboard | Add transaction | Analytics | Goals |
+|---|---|---|---|
+| <img src="docs/mobile-dashboard.png" width="200" alt="Mobile dashboard"> | <img src="docs/mobile-add.png" width="200" alt="Mobile add transaction"> | <img src="docs/mobile-analytics.png" width="200" alt="Mobile analytics"> | <img src="docs/mobile-goals.png" width="200" alt="Mobile goals"> |
 
 ---
 
