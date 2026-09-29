@@ -1,0 +1,21 @@
+# One-click deploy on Render (https://render.com) via "New > Blueprint".
+# Note: Render's free plan has no persistent disk, so the SQLite file resets
+# on every redeploy/restart. Fine for a live demo; for real personal use,
+# attach a disk (paid) or deploy on PythonAnywhere (see README).
+services:
+  - type: web
+    name: spendly
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app --workers 1 --threads 4 --bind 0.0.0.0:$PORT
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: PRODUCTION
+        value: "1"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_PATH
+        value: /tmp/spendly.db

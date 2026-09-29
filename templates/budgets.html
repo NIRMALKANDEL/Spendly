@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Budgets — Spendly{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <p class="eyebrow">Monthly limits</p>
+        <h1 class="page-title">Budgets</h1>
+    </div>
+    <nav class="month-nav" aria-label="Month">
+        <a class="icon-btn" href="{{ url_for('budgets.index', month=prev_month.strftime('%Y-%m')) }}" aria-label="Previous month">{{ m.icon("chevron-left") }}</a>
+        <span>{{ month.strftime("%B %Y") }}</span>
+        {% if next_month %}<a class="icon-btn" href="{{ url_for('budgets.index', month=next_month.strftime('%Y-%m')) }}" aria-label="Next month">{{ m.icon("chevron-right") }}</a>{% else %}<span class="icon-btn disabled" aria-hidden="true">{{ m.icon("chevron-right") }}</span>{% endif %}
+    </nav>
+</header>
+
+{% if status.overall %}
+{% set st = status_for(status.overall.percent) %}
+<section class="card budget-hero">
+    <div class="budget-hero-figures">
+        <div><span class="stat-label">Spent</span><span class="stat-value">{{ status.overall.spent|money }}</span></div>
+        <div><span class="stat-label">Budget</span><span class="stat-value">{{ status.overall.budget|money }}</span></div>
+        <div>
+            <span class="stat-label">{{ "Over by" if status.overall.remaining < 0 else "Left" }}</span>
+            <span class="stat-value {{ 'text-bad' if status.overall.remaining < 0 }}">{{ status.overall.remaining|abs|money }}</span>
+        </div>
+    </div>
+    {{ m.progress(status.overall.percent, st) }}
+    <p class="muted small">{{ status.overall.percent|round|int }}% of your overall monthly budget used.</p>
+</section>
+{% endif %}
+
+<form method="POST" class="card">
+    {{ m.csrf() }}
+    <div class="card-head">
+        <h2 class="card-title">Set budgets</h2>
+        <span class="muted small">Leave blank for no limit</span>
+    </div>
+    <div class="form-group budget-overall">
+        <label for="overall">Overall monthly budget ({{ currencies[current_user.currency][0] }})</label>
+        <input type="text" inputmode="decimal" id="overall" name="overall" class="form-input"
+               value="{{ current_user.monthly_budget_cents|as_input if current_user.monthly_budget_cents else '' }}" placeholder="No overall limit">
+    </div>
+    <ul class="budget-edit-list">
+        {% for c in categories %}
+        {% set limit = existing.get(c) %}
+        {% set used = spent.get(c, 0) %}
+        <li>
+            <div class="budget-edit-row">
+                <label for="budget_{{ c }}">{{ c }}</label>
+                <span class="muted small num">{{ used|money }} spent</span>
+                <input type="text" inputmode="decimal" id="budget_{{ c }}" name="budget_{{ c }}" class="form-input input-sm"
+                       value="{{ limit|as_input if limit else '' }}" placeholder="—">
+            </div>
+            {% if limit %}
+            {% set pct = used / limit * 100 %}
+            {% set st = status_for(pct) %}
+            <div class="budget-edit-progress">
+                {{ m.progress(pct, st) }}
+                {% if st != "good" %}<span class="status-tag status-{{ st }}">{{ m.tone_icon(st) }}{{ "Over budget" if st == "critical" else "85%+ used" }}</span>{% endif %}
+            </div>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    <div class="form-actions"><button type="submit" class="btn-primary">Save budgets</button></div>
+</form>
+{% endblock %}

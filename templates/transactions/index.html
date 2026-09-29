@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Transactions — Spendly{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <p class="eyebrow">History</p>
+        <h1 class="page-title">Transactions</h1>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('transactions.import_csv') }}" class="btn-ghost btn-sm">{{ m.icon("upload", 16) }} Import</a>
+        <a href="{{ url_for('transactions.export_csv', **query_args) }}" class="btn-ghost btn-sm">{{ m.icon("download", 16) }} Export CSV</a>
+        <a href="{{ url_for('transactions.create') }}" class="btn-primary btn-sm">{{ m.icon("plus", 16) }} Add</a>
+    </div>
+</header>
+
+{% set filtering = filters.kind or filters.category or filters.q or filters.start or filters.end %}
+<details class="card filters" {% if filtering %}open{% endif %}>
+    <summary><span>Filter &amp; search</span>{% if filtering %}<span class="tag">active</span>{% endif %}</summary>
+    <form method="GET" class="filter-form">
+        <div class="form-group grow">
+            <label for="q">Search</label>
+            <input type="search" id="q" name="q" value="{{ filters.q }}" class="form-input" placeholder="Description or category">
+        </div>
+        <div class="form-group">
+            <label for="kind">Type</label>
+            <select id="kind" name="kind" class="form-input">
+                <option value="">All</option>
+                <option value="expense" {% if filters.kind == 'expense' %}selected{% endif %}>Expenses</option>
+                <option value="income" {% if filters.kind == 'income' %}selected{% endif %}>Income</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category" name="category" class="form-input">
+                <option value="">All</option>
+                {% for c in all_categories %}<option {% if filters.category == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="start">From</label>
+            <input type="date" id="start" name="start" value="{{ filters.start or '' }}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label for="end">To</label>
+            <input type="date" id="end" name="end" value="{{ filters.end or '' }}" class="form-input">
+        </div>
+        <div class="form-group">
+            <label for="sort">Sort</label>
+            <select id="sort" name="sort" class="form-input">
+                {% for value, label in [("date_desc", "Newest first"), ("date_asc", "Oldest first"), ("amount_desc", "Largest first"), ("amount_asc", "Smallest first")] %}
+                <option value="{{ value }}" {% if filters.sort == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn-primary btn-sm">Apply</button>
+            {% if filtering %}<a href="{{ url_for('transactions.index') }}" class="btn-ghost btn-sm">Clear</a>{% endif %}
+        </div>
+    </form>
+</details>
+
+<section class="summary-strip">
+    <div><span class="muted small">Transactions</span><strong>{{ summary.count }}</strong></div>
+    <div><span class="muted small">Income</span><strong class="amount-income">{{ summary.income|money }}</strong></div>
+    <div><span class="muted small">Expenses</span><strong class="amount-expense">{{ summary.expense|money }}</strong></div>
+    <div><span class="muted small">Net</span><strong>{{ (summary.income - summary.expense)|money }}</strong></div>
+</section>
+
+<section class="card">
+    {% if rows %}
+    <ul class="tx-list">{% for tx in rows %}{{ m.tx_row(tx) }}{% endfor %}</ul>
+    {% if pages > 1 %}
+    <nav class="pagination" aria-label="Pages">
+        {% if page > 1 %}<a class="btn-ghost btn-sm" href="{{ url_for('transactions.index', page=page - 1, **query_args) }}">{{ m.icon("chevron-left", 16) }} Prev</a>{% endif %}
+        <span class="muted small">Page {{ page }} of {{ pages }}</span>
+        {% if page < pages %}<a class="btn-ghost btn-sm" href="{{ url_for('transactions.index', page=page + 1, **query_args) }}">Next {{ m.icon("chevron-right", 16) }}</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% elif filtering %}
+    <p class="empty">No transactions match these filters.</p>
+    {% else %}
+    <div class="empty">
+        <p>No transactions yet.</p>
+        <a href="{{ url_for('transactions.create') }}" class="btn-primary btn-sm">Add your first one</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

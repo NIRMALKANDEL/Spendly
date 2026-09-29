@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Dashboard — Spendly{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <p class="eyebrow">{{ month_name }}</p>
+        <h1 class="page-title">Hello, {{ current_user.name.split()[0] }}</h1>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('transactions.create', kind='income') }}" class="btn-ghost btn-sm">{{ m.icon("plus", 16) }} Income</a>
+        <a href="{{ url_for('transactions.create') }}" class="btn-primary btn-sm">{{ m.icon("plus", 16) }} Expense</a>
+    </div>
+</header>
+
+{% if not has_any %}
+<section class="card onboarding">
+    <h2 class="card-title">Let's set up your money map</h2>
+    <ol class="steps">
+        <li><a href="{{ url_for('transactions.create', kind='income') }}">Add your income</a> — salary, freelance or anything else.</li>
+        <li><a href="{{ url_for('transactions.create') }}">Log a few expenses</a>, or <a href="{{ url_for('transactions.import_csv') }}">import a CSV</a> from your bank.</li>
+        <li><a href="{{ url_for('budgets.index') }}">Set a monthly budget</a> so Spendly can warn you early.</li>
+        <li><a href="{{ url_for('goals.index') }}">Create a savings goal</a> and track progress.</li>
+    </ol>
+</section>
+{% endif %}
+
+<section class="stat-grid" aria-label="This month">
+    {% set change = ((this_month.expense - last_month.expense) / last_month.expense * 100) if last_month.expense else None %}
+    <div class="stat-card">
+        <span class="stat-label">Spent this month</span>
+        <span class="stat-value">{{ this_month.expense|money }}</span>
+        {% if change is not none %}
+        <span class="stat-delta {{ 'delta-bad' if change > 0 else 'delta-good' }}">
+            {{ m.icon("arrow-up" if change > 0 else "arrow-down", 14) }}{{ change|abs|round|int }}% vs last month
+        </span>
+        {% else %}<span class="stat-delta muted">No data for last month</span>{% endif %}
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Income this month</span>
+        <span class="stat-value">{{ this_month.income|money }}</span>
+        <span class="stat-delta muted">Last month {{ last_month.income|money }}</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Net saved</span>
+        <span class="stat-value {{ 'text-bad' if this_month.net < 0 }}">{{ this_month.net|money }}</span>
+        <span class="stat-delta muted">Income minus expenses</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Savings rate</span>
+        <span class="stat-value">{{ (this_month.savings_rate|round|int ~ "%") if this_month.savings_rate is not none else "—" }}</span>
+        <span class="stat-delta muted">Target: 20% or more</span>
+    </div>
+</section>
+
+{% if insights %}
+<section class="card">
+    <h2 class="card-title">{{ m.icon("spark", 18) }} Insights</h2>
+    <ul class="insights">
+        {% for item in insights %}
+        <li class="insight tone-{{ item.tone }}">{{ m.tone_icon(item.tone) }}<span>{{ item.text }}</span></li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+<div class="grid-2">
+    <section class="card">
+        <div class="card-head">
+            <h2 class="card-title">Spending pace</h2>
+            <span class="muted small">Cumulative, this month vs last</span>
+        </div>
+        <div class="chart-box"><canvas id="pace-chart" aria-label="Cumulative spending this month compared with last month" role="img"></canvas></div>
+    </section>
+    <section class="card">
+        <div class="card-head">
+            <h2 class="card-title">Income vs expenses</h2>
+            <span class="muted small">Last 6 months</span>
+        </div>
+        <div class="chart-box"><canvas id="trend-chart" aria-label="Monthly income and expenses for the last six months" role="img"></canvas></div>
+    </section>
+</div>
+
+<div class="grid-2">
+    <section class="card">
+        <div class="card-head">
+            <h2 class="card-title">Where it went</h2>
+            <a href="{{ url_for('analytics.index') }}" class="link small">Full analysis →</a>
+        </div>
+        {% if categories %}
+        <ul class="bar-list">
+            {% for c in categories[:7] %}
+            <li>
+                <div class="bar-list-row"><span>{{ c.category }}</span><span class="num">{{ c.total|money }} <span class="muted">· {{ c.share|round|int }}%</span></span></div>
+                <div class="bar-track"><div class="bar-fill" style="width: {{ (c.total / categories[0].total * 100)|round(1) }}%"></div></div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}<p class="empty">No expenses yet this month.</p>{% endif %}
+    </section>
+
+    <section class="card">
+        <div class="card-head">
+            <h2 class="card-title">Budgets</h2>
+            <a href="{{ url_for('budgets.index') }}" class="link small">Manage →</a>
+        </div>
+        {% if budget.overall or budget.categories %}
+            {% if budget.overall %}
+            {% set st = status_for(budget.overall.percent) %}
+            <div class="budget-line">
+                <div class="bar-list-row"><strong>Overall</strong><span class="num">{{ budget.overall.spent|money }} / {{ budget.overall.budget|money }}</span></div>
+                {{ m.progress(budget.overall.percent, st) }}
+            </div>
+            {% endif %}
+            {% for b in budget.categories[:5] %}
+            {% set st = status_for(b.percent) %}
+            <div class="budget-line">
+                <div class="bar-list-row">
+                    <span>{{ b.category }}{% if st != "good" %} <span class="status-tag status-{{ st }}">{{ m.tone_icon(st) }}{{ "Over" if st == "critical" else "Close" }}</span>{% endif %}</span>
+                    <span class="num">{{ b.spent|money }} / {{ b.budget|money }}</span>
+                </div>
+                {{ m.progress(b.percent, st) }}
+            </div>
+            {% endfor %}
+        {% else %}
+        <p class="empty">No budgets yet. <a href="{{ url_for('budgets.index') }}" class="link">Set one up</a> to get early warnings.</p>
+        {% endif %}
+    </section>
+</div>
+
+<div class="grid-2">
+    <section class="card">
+        <div class="card-head">
+            <h2 class="card-title">Recent transactions</h2>
+            <a href="{{ url_for('transactions.index') }}" class="link small">View all →</a>
+        </div>
+        {% if recent %}
+        <ul class="tx-list">{% for tx in recent %}{{ m.tx_row(tx, show_actions=False) }}{% endfor %}</ul>
+        {% else %}<p class="empty">Nothing logged yet.</p>{% endif %}
+    </section>
+
+    <section class="card">
+        <div class="card-head">
+            <h2 class="card-title">Savings goals</h2>
+            <a href="{{ url_for('goals.index') }}" class="link small">All goals →</a>
+        </div>
+        {% if goals %}
+            {% for goal in goals %}
+            {% set pct = [goal.saved_cents / goal.target_cents * 100, 100]|min %}
+            <div class="budget-line">
+                <div class="bar-list-row"><span>{{ goal.name }}</span><span class="num">{{ pct|round|int }}%</span></div>
+                {{ m.progress(pct, "accent") }}
+                <span class="muted small">{{ goal.saved_cents|money }} of {{ goal.target_cents|money }}</span>
+            </div>
+            {% endfor %}
+        {% else %}
+        <p class="empty">No goals yet. <a href="{{ url_for('goals.index') }}" class="link">Create your first goal</a>.</p>
+        {% endif %}
+    </section>
+</div>
+
+<script type="application/json" id="chart-data">{{ chart_data|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}

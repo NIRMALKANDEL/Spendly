@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Calculators — Spendly{% endblock %}
+
+{% macro field(id, label, value, suffix=None, step="any", min=0) %}
+<div class="form-group">
+    <label for="{{ id }}">{{ label }}</label>
+    <div class="input-affix">
+        <input type="number" id="{{ id }}" name="{{ id }}" value="{{ value }}" step="{{ step }}" min="{{ min }}" class="form-input" inputmode="decimal">
+        {% if suffix %}<span class="affix">{{ suffix }}</span>{% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro body() %}
+{% set sym = currencies[current_user.currency][0] if current_user else "₹" %}
+<div class="{{ 'calc-page' if not current_user else '' }}">
+<header class="page-head">
+    <div>
+        <p class="eyebrow">Plan ahead</p>
+        <h1 class="page-title">Financial calculators</h1>
+    </div>
+</header>
+
+<nav class="chips calc-nav" aria-label="Calculators">
+    <a href="#savings" class="chip">Savings growth</a>
+    <a href="#goal" class="chip">Goal planner</a>
+    <a href="#time" class="chip">Time to goal</a>
+    <a href="#emergency" class="chip">Emergency fund</a>
+    <a href="#loan" class="chip">Loan EMI</a>
+</nav>
+
+<section class="card calc" id="savings" data-calc="savings" data-currency="{{ sym }}">
+    <div class="calc-head">
+        <h2 class="card-title">Savings growth</h2>
+        <p class="muted small">How much will regular saving grow into with compound returns?</p>
+    </div>
+    <div class="calc-body">
+        <form class="calc-form" novalidate>
+            {{ field("principal", "Starting amount", 50000, sym) }}
+            {{ field("monthly", "Monthly saving", 10000, sym) }}
+            {{ field("rate", "Expected annual return", 7, "%") }}
+            {{ field("years", "Years", 10, "yrs", 1, 1) }}
+        </form>
+        <div class="calc-result">
+            <div class="result-hero"><span class="stat-label">Future value</span><output class="result-value" data-out="fv">—</output></div>
+            <dl class="result-list">
+                <div><dt>You put in</dt><dd data-out="contrib">—</dd></div>
+                <div><dt>Growth from returns</dt><dd data-out="growth">—</dd></div>
+            </dl>
+            <div class="chart-box"><canvas id="savings-chart" role="img" aria-label="Savings growth by year: contributions and returns"></canvas></div>
+        </div>
+    </div>
+</section>
+
+<section class="card calc" id="goal" data-calc="goal" data-currency="{{ sym }}">
+    <div class="calc-head">
+        <h2 class="card-title">Goal planner</h2>
+        <p class="muted small">How much do I need to save each month to reach a target by a date?</p>
+    </div>
+    <div class="calc-body">
+        <form class="calc-form" novalidate>
+            {{ field("target", "Target amount", 500000, sym) }}
+            {{ field("current", "Already saved", 50000, sym) }}
+            {{ field("rate", "Expected annual return", 6, "%") }}
+            {{ field("months", "Months to reach it", 36, "mo", 1, 1) }}
+        </form>
+        <div class="calc-result">
+            <div class="result-hero"><span class="stat-label">Save every month</span><output class="result-value" data-out="monthly">—</output></div>
+            <dl class="result-list">
+                <div><dt>Total you'll contribute</dt><dd data-out="total">—</dd></div>
+                <div><dt>Returns do the rest</dt><dd data-out="growth">—</dd></div>
+            </dl>
+            {% if current_user %}<a href="{{ url_for('goals.index') }}" class="link small">Turn this into a savings goal →</a>{% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="card calc" id="time" data-calc="time" data-currency="{{ sym }}">
+    <div class="calc-head">
+        <h2 class="card-title">Time to goal</h2>
+        <p class="muted small">Saving a fixed amount each month — when will I get there?</p>
+    </div>
+    <div class="calc-body">
+        <form class="calc-form" novalidate>
+            {{ field("target", "Target amount", 200000, sym) }}
+            {{ field("current", "Already saved", 20000, sym) }}
+            {{ field("monthly", "Monthly saving", 8000, sym) }}
+            {{ field("rate", "Expected annual return", 5, "%") }}
+        </form>
+        <div class="calc-result">
+            <div class="result-hero"><span class="stat-label">You'll get there in</span><output class="result-value" data-out="duration">—</output></div>
+            <dl class="result-list"><div><dt>Around</dt><dd data-out="date">—</dd></div></dl>
+        </div>
+    </div>
+</section>
+
+<section class="card calc" id="emergency" data-calc="emergency" data-currency="{{ sym }}">
+    <div class="calc-head">
+        <h2 class="card-title">Emergency fund</h2>
+        <p class="muted small">A cushion of 3–6 months of essential spending is the usual guideline.{% if avg_expense %} Pre-filled with your 3-month average.{% endif %}</p>
+    </div>
+    <div class="calc-body">
+        <form class="calc-form" novalidate>
+            {{ field("expenses", "Monthly expenses", avg_expense or 40000, sym) }}
+            {{ field("months", "Months of cover", 6, "mo", 1, 1) }}
+            {{ field("current", "Already set aside", 0, sym) }}
+        </form>
+        <div class="calc-result">
+            <div class="result-hero"><span class="stat-label">Target fund</span><output class="result-value" data-out="target">—</output></div>
+            <dl class="result-list"><div><dt>Still to save</dt><dd data-out="gap">—</dd></div></dl>
+        </div>
+    </div>
+</section>
+
+<section class="card calc" id="loan" data-calc="loan" data-currency="{{ sym }}">
+    <div class="calc-head">
+        <h2 class="card-title">Loan EMI</h2>
+        <p class="muted small">Monthly instalment and total interest for a loan.</p>
+    </div>
+    <div class="calc-body">
+        <form class="calc-form" novalidate>
+            {{ field("principal", "Loan amount", 1000000, sym) }}
+            {{ field("rate", "Annual interest rate", 9.5, "%") }}
+            {{ field("months", "Tenure", 60, "mo", 1, 1) }}
+        </form>
+        <div class="calc-result">
+            <div class="result-hero"><span class="stat-label">Monthly EMI</span><output class="result-value" data-out="emi">—</output></div>
+            <dl class="result-list">
+                <div><dt>Total interest</dt><dd data-out="interest">—</dd></div>
+                <div><dt>Total repayment</dt><dd data-out="total">—</dd></div>
+            </dl>
+        </div>
+    </div>
+</section>
+<p class="muted small disclaimer">Projections assume a constant return compounded monthly. Real returns vary — use these as estimates, not advice.</p>
+</div>
+{% endmacro %}
+
+{% block content %}{{ body() }}{% endblock %}
+{% block public_content %}<div class="public-page">{{ body() }}</div>{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/calculators.js') }}"></script>
+{% endblock %}

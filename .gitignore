@@ -1,8 +1,13 @@
 venv/
-expense_tracker.db
+.venv/
+instance/
+*.db
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
+.coverage
+htmlcov/
 .env
 .DS_Store
-.claude/plans/
+.claude/

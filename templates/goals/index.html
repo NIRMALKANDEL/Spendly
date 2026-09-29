@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Savings goals — Spendly{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <p class="eyebrow">Plan ahead</p>
+        <h1 class="page-title">Savings goals</h1>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('main.calculators') }}#goal" class="btn-ghost btn-sm">{{ m.icon("calc", 16) }} Goal planner</a>
+    </div>
+</header>
+
+{% if goals %}
+<section class="stat-grid stat-grid-3">
+    <div class="stat-card"><span class="stat-label">Saved so far</span><span class="stat-value">{{ totals.saved|money }}</span></div>
+    <div class="stat-card"><span class="stat-label">Total targets</span><span class="stat-value">{{ totals.target|money }}</span></div>
+    <div class="stat-card"><span class="stat-label">Needed per month</span><span class="stat-value">{{ totals.monthly|money }}</span><span class="stat-delta muted">to hit every dated goal</span></div>
+</section>
+{% endif %}
+
+<div class="goal-grid">
+    {% for info in goals %}
+    {% set goal = info.goal %}
+    <article class="card goal-card">
+        <div class="card-head">
+            <h2 class="card-title">{{ goal.name }}</h2>
+            {% if info.status == "complete" %}<span class="status-tag status-good">{{ m.icon("check", 14) }} Reached</span>
+            {% elif info.status == "overdue" %}<span class="status-tag status-warning">{{ m.icon("alert", 14) }} Past target date</span>{% endif %}
+        </div>
+        <div class="goal-figures">
+            <span class="goal-saved">{{ goal.saved_cents|money }}</span>
+            <span class="muted">of {{ goal.target_cents|money }}</span>
+        </div>
+        {{ m.progress(info.percent, "good" if info.status == "complete" else "accent") }}
+        <dl class="goal-meta">
+            <div><dt>Progress</dt><dd>{{ info.percent|round|int }}%</dd></div>
+            <div><dt>Remaining</dt><dd>{{ info.remaining|money }}</dd></div>
+            {% if goal.target_date %}<div><dt>Target date</dt><dd>{{ goal.target_date }}</dd></div>{% endif %}
+            {% if info.monthly_needed %}<div><dt>Save monthly</dt><dd>{{ info.monthly_needed|money }} × {{ info.months_left }}</dd></div>{% endif %}
+        </dl>
+        <form method="POST" action="{{ url_for('goals.contribute', goal_id=goal.id) }}" class="contribute-form">
+            {{ m.csrf() }}
+            <input type="text" inputmode="decimal" name="amount" class="form-input input-sm" placeholder="Amount" aria-label="Amount for {{ goal.name }}" required>
+            <button type="submit" name="action" value="add" class="btn-primary btn-sm">Add</button>
+            <button type="submit" name="action" value="withdraw" class="btn-ghost btn-sm">Withdraw</button>
+        </form>
+        <div class="card-foot">
+            <a href="{{ url_for('goals.edit', goal_id=goal.id) }}" class="link small">{{ m.icon("edit", 14) }} Edit</a>
+            <form method="POST" action="{{ url_for('goals.delete', goal_id=goal.id) }}" data-confirm="Delete the goal “{{ goal.name }}”?">
+                {{ m.csrf() }}
+                <button type="submit" class="link small link-danger">{{ m.icon("trash", 14) }} Delete</button>
+            </form>
+        </div>
+    </article>
+    {% endfor %}
+
+    <section class="card goal-card goal-new">
+        <h2 class="card-title">{{ m.icon("plus", 18) }} New goal</h2>
+        {% if error %}<div class="auth-error" role="alert">{{ error }}</div>{% endif %}
+        {% include "goals/_form.html" %}
+    </section>
+</div>
+{% endblock %}

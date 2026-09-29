@@ -1,0 +1,11 @@
+{
+  "name": "Spendly — Personal Finance Tracker",
+  "short_name": "Spendly",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f7f6f3",
+  "theme_color": "#1a472a",
+  "icons": [
+    { "src": "/static/img/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

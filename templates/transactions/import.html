@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Import CSV — Spendly{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <p class="eyebrow"><a href="{{ url_for('transactions.index') }}" class="link">← Transactions</a></p>
+        <h1 class="page-title">Import from CSV</h1>
+    </div>
+</header>
+
+<section class="card form-card">
+    {% if errors %}
+    <div class="auth-error" role="alert">
+        <strong>Nothing was imported — {{ error_count }} row{{ "s" if error_count != 1 }} need{{ "" if error_count != 1 else "s" }} fixing:</strong>
+        <ul class="error-list">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+    <p>Upload a UTF-8 CSV with a header row. Required columns: <code>date</code>, <code>category</code>, <code>amount</code>.
+       Optional: <code>type</code> (<em>expense</em> or <em>income</em>, defaults to expense) and <code>description</code>.
+       The file exported from Spendly can be imported back as-is.</p>
+    <pre class="code-sample">date,type,category,amount,description
+2026-09-01,income,Salary,65000,September salary
+2026-09-03,expense,Groceries,1840.50,Weekly groceries</pre>
+    <p class="muted small">Categories — expense: Food, Groceries, Rent, Bills, Transport, Shopping, Health, Entertainment, Education, Travel, Other · income: Salary, Freelance, Business, Investment, Gift, Other. Max 5,000 rows / 2 MB. The whole file is rejected if any row is invalid, so nothing is half-imported.</p>
+    <form method="POST" enctype="multipart/form-data" class="import-form">
+        {{ m.csrf() }}
+        <input type="file" name="file" accept=".csv,text/csv" class="form-input" required>
+        <button type="submit" class="btn-primary">{{ m.icon("upload", 16) }} Import</button>
+    </form>
+</section>
+{% endblock %}

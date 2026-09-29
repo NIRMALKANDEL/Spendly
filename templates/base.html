@@ -1,32 +1,131 @@
+{% import "_macros.html" as m with context %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en"
+      data-theme="{{ current_user.theme if current_user else 'forest' }}"
+      data-mode="{{ current_user.mode if current_user else 'system' }}"
+      {% if current_user %}data-user-mode="1"{% endif %}
+      {% if current_user and current_user.accent %}style="--accent: {{ current_user.accent }}"{% endif %}>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Spendly — track expenses and income, set budgets, plan savings goals and understand your spending.">
+    <meta name="theme-color" content="{{ theme.accent }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}Spendly{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='img/icon.svg') }}" type="image/svg+xml">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300..700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/theme-init.js') }}"></script>
     {% block head %}{% endblock %}
 </head>
-<body>
+{% set cur = currencies[current_user.currency if current_user else "INR"] %}
+<body class="{% if current_user %}app-body{% else %}public-body{% endif %}"
+      data-currency-symbol="{{ cur[0] }}" data-grouping="{{ cur[1] }}">
+<a class="skip-link" href="#main">Skip to content</a>
 
+{% if current_user %}
+    {% set nav = [
+        ("main.dashboard", "Dashboard", "home"),
+        ("transactions.index", "Transactions", "list"),
+        ("analytics.index", "Analytics", "chart"),
+        ("budgets.index", "Budgets", "wallet"),
+        ("goals.index", "Goals", "target"),
+        ("recurring.index", "Recurring", "repeat"),
+        ("main.calculators", "Calculators", "calc"),
+        ("settings.index", "Settings", "settings"),
+    ] %}
+    {% set active = request.endpoint or "" %}
+
+    <header class="topbar">
+        <button class="icon-btn nav-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false" data-nav-toggle>{{ m.icon("menu", 20) }}</button>
+        <a href="{{ url_for('main.dashboard') }}" class="nav-brand">
+            <span class="brand-icon">◈</span><span class="brand-name">Spendly</span>
+        </a>
+        <div class="topbar-actions">
+            <button class="icon-btn" type="button" data-mode-toggle aria-label="Toggle dark mode">
+                <span class="when-light">{{ m.icon("moon", 18) }}</span><span class="when-dark">{{ m.icon("sun", 18) }}</span>
+            </button>
+            <a href="{{ url_for('transactions.create') }}" class="btn-primary btn-sm topbar-add">{{ m.icon("plus", 16) }}<span>Add</span></a>
+        </div>
+    </header>
+
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar" data-sidebar>
+            <div class="sidebar-head">
+                <a href="{{ url_for('main.dashboard') }}" class="nav-brand">
+                    <span class="brand-icon">◈</span><span class="brand-name">Spendly</span>
+                </a>
+                <button class="icon-btn sidebar-close" type="button" aria-label="Close menu" data-nav-close>{{ m.icon("close", 20) }}</button>
+            </div>
+            <a href="{{ url_for('transactions.create') }}" class="btn-primary sidebar-add">{{ m.icon("plus", 16) }} New transaction</a>
+            <nav class="side-nav" aria-label="Main">
+                {% for endpoint, label, ico in nav %}
+                <a href="{{ url_for(endpoint) }}"
+                   class="side-link{% if active.split('.')[0] == endpoint.split('.')[0] and (active == endpoint or endpoint.split('.')[0] != 'main') %} active{% endif %}"
+                   {% if active == endpoint %}aria-current="page"{% endif %}>
+                    {{ m.icon(ico) }}<span>{{ label }}</span>
+                </a>
+                {% endfor %}
+            </nav>
+            <div class="sidebar-foot">
+                <div class="user-chip">
+                    <span class="avatar" aria-hidden="true">{{ current_user.name[:1]|upper }}</span>
+                    <div class="user-meta">
+                        <span class="user-name">{{ current_user.name }}</span>
+                        <span class="user-email">{{ "Demo account" if current_user.is_demo else current_user.email }}</span>
+                    </div>
+                </div>
+                <form method="POST" action="{{ url_for('auth.logout') }}">
+                    {{ m.csrf() }}
+                    <button type="submit" class="side-link side-logout">{{ m.icon("logout") }}<span>Sign out</span></button>
+                </form>
+            </div>
+        </aside>
+        <div class="sidebar-scrim" data-nav-close hidden></div>
+
+        <main class="app-main" id="main">
+            {% if current_user.is_demo %}
+            <div class="demo-banner">{{ m.icon("info", 16) }} Demo account — sample data, deleted automatically after 24 hours. <a href="{{ url_for('auth.register') }}">Create your own account</a></div>
+            {% endif %}
+            {% include "_flashes.html" %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <nav class="bottom-nav" aria-label="Quick">
+        {% for endpoint, label, ico in nav[:2] %}
+        <a href="{{ url_for(endpoint) }}" class="{% if active == endpoint %}active{% endif %}">{{ m.icon(ico, 20) }}<span>{{ label }}</span></a>
+        {% endfor %}
+        <a href="{{ url_for('transactions.create') }}" class="bottom-add" aria-label="Add transaction">{{ m.icon("plus", 24) }}</a>
+        {% for endpoint, label, ico in nav[2:3] + nav[4:5] %}
+        <a href="{{ url_for(endpoint) }}" class="{% if active == endpoint %}active{% endif %}">{{ m.icon(ico, 20) }}<span>{{ label }}</span></a>
+        {% endfor %}
+    </nav>
+
+{% else %}
     <nav class="navbar">
         <div class="nav-inner">
-            <a href="{{ url_for('landing') }}" class="nav-brand">
+            <a href="{{ url_for('main.landing') }}" class="nav-brand">
                 <span class="brand-icon">◈</span>
                 <span class="brand-name">Spendly</span>
             </a>
             <div class="nav-links">
-                <a href="{{ url_for('login') }}">Sign in</a>
-                <a href="{{ url_for('register') }}" class="nav-cta">Get started</a>
+                <a href="{{ url_for('main.calculators') }}" class="hide-sm">Calculators</a>
+                <button class="icon-btn" type="button" data-mode-toggle aria-label="Toggle dark mode">
+                    <span class="when-light">{{ m.icon("moon", 18) }}</span><span class="when-dark">{{ m.icon("sun", 18) }}</span>
+                </button>
+                <a href="{{ url_for('auth.login') }}" class="hide-sm">Sign in</a>
+                <a href="{{ url_for('auth.register') }}" class="nav-cta">Get started</a>
             </div>
         </div>
     </nav>
 
-    <main class="main-content">
-        {% block content %}{% endblock %}
+    <main class="main-content" id="main">
+        <div class="public-flashes">{% include "_flashes.html" %}</div>
+        {% block public_content %}{% endblock %}
     </main>
 
     <footer class="footer">
@@ -36,8 +135,9 @@
             <p class="footer-copy">Track every rupee. Own your finances.</p>
         </div>
     </footer>
+{% endif %}
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% block scripts %}{% endblock %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

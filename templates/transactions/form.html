@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}{{ "Edit" if tx else "Add" }} transaction — Spendly{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <p class="eyebrow"><a href="{{ url_for('transactions.index') }}" class="link">← Transactions</a></p>
+        <h1 class="page-title">{{ "Edit transaction" if tx else "New transaction" }}</h1>
+    </div>
+</header>
+
+<section class="card form-card">
+    {% if error %}<div class="auth-error" role="alert">{{ error }}</div>{% endif %}
+    {% set kind = form.kind or "expense" %}
+    <form method="POST" data-tx-form>
+        {{ m.csrf() }}
+        <fieldset class="segmented" aria-label="Type">
+            <label><input type="radio" name="kind" value="expense" {% if kind == 'expense' %}checked{% endif %}><span>Expense</span></label>
+            <label><input type="radio" name="kind" value="income" {% if kind == 'income' %}checked{% endif %}><span>Income</span></label>
+        </fieldset>
+
+        <div class="form-group">
+            <label for="amount">Amount ({{ currencies[current_user.currency][0] }})</label>
+            <input type="text" inputmode="decimal" id="amount" name="amount" value="{{ form.amount or '' }}"
+                   class="form-input input-amount" placeholder="0.00" autocomplete="off" required autofocus>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" name="category" class="form-input" required>
+                    {% for k, cats in categories.items() %}
+                    <optgroup label="{{ k|title }}" data-kind="{{ k }}" {% if k != kind %}disabled hidden{% endif %}>
+                        {% for c in cats %}<option value="{{ c }}" {% if k == kind and form.category == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="date">Date</label>
+                <input type="date" id="date" name="date" value="{{ form.date or '' }}" class="form-input" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description <span class="muted">(optional)</span></label>
+            <input type="text" id="description" name="description" value="{{ form.description or '' }}"
+                   class="form-input" maxlength="200" placeholder="e.g. Dinner with friends">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">{{ "Save changes" if tx else "Add transaction" }}</button>
+            {% if not tx %}<button type="submit" name="add_another" value="1" class="btn-ghost">Save &amp; add another</button>{% endif %}
+            <a href="{{ url_for('transactions.index') }}" class="btn-ghost">Cancel</a>
+        </div>
+    </form>
+    {% if tx %}
+    <form method="POST" action="{{ url_for('transactions.delete', tx_id=tx.id) }}" class="danger-zone-inline" data-confirm="Delete this transaction?">
+        {{ m.csrf() }}
+        <button type="submit" class="btn-danger btn-sm">{{ m.icon("trash", 16) }} Delete transaction</button>
+    </form>
+    {% endif %}
+</section>
+{% endblock %}

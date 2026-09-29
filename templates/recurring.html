@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Recurring — Spendly{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <p class="eyebrow">Automations</p>
+        <h1 class="page-title">Recurring transactions</h1>
+    </div>
+</header>
+
+<section class="stat-grid stat-grid-3">
+    <div class="stat-card"><span class="stat-label">Fixed costs / month</span><span class="stat-value">{{ monthly.expense|money }}</span></div>
+    <div class="stat-card"><span class="stat-label">Recurring income / month</span><span class="stat-value">{{ monthly.income|money }}</span></div>
+    <div class="stat-card"><span class="stat-label">Active items</span><span class="stat-value">{{ rules|selectattr("active")|list|length }}</span></div>
+</section>
+
+<div class="grid-2 grid-2-wide">
+    <section class="card">
+        <h2 class="card-title">Scheduled</h2>
+        {% if rules %}
+        <ul class="tx-list">
+            {% for r in rules %}
+            <li class="tx-row {% if not r.active %}is-paused{% endif %}">
+                <span class="tx-cat cat-dot" data-kind="{{ r.kind }}">{{ r.category[:1] }}</span>
+                <div class="tx-main">
+                    <span class="tx-desc">{{ r.description or r.category }}</span>
+                    <span class="tx-meta">{{ r.frequency|title }} · {{ r.category }} · {% if r.active %}next {{ r.next_date }}{% else %}paused{% endif %}</span>
+                </div>
+                {{ m.amount(r) }}
+                <div class="tx-actions">
+                    <form method="POST" action="{{ url_for('recurring.toggle', rule_id=r.id) }}">
+                        {{ m.csrf() }}
+                        <button type="submit" class="icon-btn" aria-label="{{ 'Pause' if r.active else 'Resume' }}">{{ m.icon("pause" if r.active else "play", 16) }}</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('recurring.delete', rule_id=r.id) }}" data-confirm="Delete this recurring item? Past transactions are kept.">
+                        {{ m.csrf() }}
+                        <button type="submit" class="icon-btn danger" aria-label="Delete">{{ m.icon("trash", 16) }}</button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty">Nothing scheduled. Add rent, salary or subscriptions and Spendly will log them automatically.</p>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2 class="card-title">Add recurring item</h2>
+        {% if error %}<div class="auth-error" role="alert">{{ error }}</div>{% endif %}
+        {% set kind = form.kind or "expense" %}
+        <form method="POST" data-tx-form>
+            {{ m.csrf() }}
+            <fieldset class="segmented" aria-label="Type">
+                <label><input type="radio" name="kind" value="expense" {% if kind == 'expense' %}checked{% endif %}><span>Expense</span></label>
+                <label><input type="radio" name="kind" value="income" {% if kind == 'income' %}checked{% endif %}><span>Income</span></label>
+            </fieldset>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="amount">Amount</label>
+                    <input type="text" inputmode="decimal" id="amount" name="amount" value="{{ form.amount or '' }}" class="form-input" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label for="frequency">Repeats</label>
+                    <select id="frequency" name="frequency" class="form-input">
+                        {% for f in frequencies %}<option value="{{ f }}" {% if form.frequency == f %}selected{% endif %}>{{ f|title }}</option>{% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="category">Category</label>
+                    <select id="category" name="category" class="form-input" required>
+                        {% for k, cats in categories.items() %}
+                        <optgroup label="{{ k|title }}" data-kind="{{ k }}" {% if k != kind %}disabled hidden{% endif %}>
+                            {% for c in cats %}<option value="{{ c }}" {% if k == kind and form.category == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+                        </optgroup>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="date">First date</label>
+                    <input type="date" id="date" name="date" value="{{ form.date or '' }}" class="form-input" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="description">Description</label>
+                <input type="text" id="description" name="description" value="{{ form.description or '' }}" class="form-input" maxlength="200" placeholder="e.g. Netflix">
+            </div>
+            <p class="muted small">Occurrences up to today are added immediately; future ones are logged automatically when they fall due.</p>
+            <div class="form-actions"><button type="submit" class="btn-primary">Save</button></div>
+        </form>
+    </section>
+</div>
+{% endblock %}

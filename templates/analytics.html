@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Analytics — Spendly{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <p class="eyebrow">{{ start.strftime("%d %b %Y") }} – {{ end.strftime("%d %b %Y") }}</p>
+        <h1 class="page-title">Spending analysis</h1>
+    </div>
+</header>
+
+<nav class="range-tabs" aria-label="Time range">
+    {% for key, (label, _) in ranges.items() if key != "custom" %}
+    <a href="{{ url_for('analytics.index', range=key) }}" class="chip {% if range_key == key %}active{% endif %}" {% if range_key == key %}aria-current="true"{% endif %}>{{ label }}</a>
+    {% endfor %}
+    <details class="custom-range" {% if range_key == "custom" %}open{% endif %}>
+        <summary class="chip {% if range_key == 'custom' %}active{% endif %}">Custom</summary>
+        <form method="GET" class="custom-range-form">
+            <input type="hidden" name="range" value="custom">
+            <label>From <input type="date" name="start" value="{{ start.isoformat() }}" class="form-input input-sm"></label>
+            <label>To <input type="date" name="end" value="{{ end.isoformat() }}" class="form-input input-sm"></label>
+            <button type="submit" class="btn-primary btn-sm">Apply</button>
+        </form>
+    </details>
+</nav>
+
+<section class="stat-grid stat-grid-5">
+    <div class="stat-card"><span class="stat-label">Total spent</span><span class="stat-value">{{ summary.expense|money }}</span><span class="stat-delta muted">{{ summary.expense_count }} expenses</span></div>
+    <div class="stat-card"><span class="stat-label">Total income</span><span class="stat-value">{{ summary.income|money }}</span></div>
+    <div class="stat-card"><span class="stat-label">Net saved</span><span class="stat-value {{ 'text-bad' if summary.net < 0 }}">{{ summary.net|money }}</span></div>
+    <div class="stat-card"><span class="stat-label">Avg. monthly spend</span><span class="stat-value">{{ avg_month|round|int|money(False) }}</span></div>
+    <div class="stat-card"><span class="stat-label">Savings rate</span><span class="stat-value">{{ (summary.savings_rate|round|int ~ "%") if summary.savings_rate is not none else "—" }}</span></div>
+</section>
+
+{% if not categories and not summary.income %}
+<section class="card"><p class="empty">No transactions in this period. Try a wider range, or <a class="link" href="{{ url_for('transactions.create') }}">add some</a>.</p></section>
+{% else %}
+
+{% if insights %}
+<section class="card">
+    <h2 class="card-title">{{ m.icon("spark", 18) }} What stands out</h2>
+    <ul class="insights">
+        {% for item in insights %}<li class="insight tone-{{ item.tone }}">{{ m.tone_icon(item.tone) }}<span>{{ item.text }}</span></li>{% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+<section class="card">
+    <div class="card-head">
+        <h2 class="card-title">Income vs expenses by month</h2>
+        <button type="button" class="link small" data-table-toggle="monthly-table">Show table</button>
+    </div>
+    <div class="chart-box chart-box-lg"><canvas id="monthly-chart" role="img" aria-label="Monthly income and expenses"></canvas></div>
+    <div class="table-wrap" id="monthly-table" hidden>
+        <table class="data-table">
+            <thead><tr><th>Month</th><th class="num">Income</th><th class="num">Expenses</th><th class="num">Net</th></tr></thead>
+            <tbody>
+                {% for row in monthly %}
+                <tr><td>{{ row.label }}</td><td class="num">{{ row.income|money }}</td><td class="num">{{ row.expense|money }}</td><td class="num {{ 'text-bad' if row.net < 0 }}">{{ row.net|money }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="grid-2">
+    <section class="card">
+        <h2 class="card-title">Spending by category</h2>
+        <div class="chart-box" style="height: {{ [categories|length * 34 + 40, 200]|max }}px"><canvas id="category-chart" role="img" aria-label="Spending by category"></canvas></div>
+    </section>
+    <section class="card">
+        <h2 class="card-title">Average spend by weekday</h2>
+        <div class="chart-box"><canvas id="weekday-chart" role="img" aria-label="Average spending per weekday"></canvas></div>
+    </section>
+</div>
+
+{% if by_cat_month %}
+<section class="card">
+    <div class="card-head">
+        <h2 class="card-title">Category trends</h2>
+        <span class="muted small">Last {{ heat_keys|length }} month{{ "s" if heat_keys|length != 1 }} in range · darker = more</span>
+    </div>
+    {% set peak = namespace(v=1) %}
+    {% for cat, months in by_cat_month.items() %}{% for v in months.values() %}{% if v > peak.v %}{% set peak.v = v %}{% endif %}{% endfor %}{% endfor %}
+    <div class="table-wrap">
+        <table class="data-table heat-table">
+            <thead><tr><th>Category</th>{% for k in heat_keys %}<th class="num">{{ k[5:] }}/{{ k[2:4] }}</th>{% endfor %}</tr></thead>
+            <tbody>
+                {% for cat in by_cat_month|sort %}
+                <tr>
+                    <td>{{ cat }}</td>
+                    {% for k in heat_keys %}
+                    {% set v = by_cat_month[cat].get(k, 0) %}
+                    <td class="num heat" style="--heat: {{ (v / peak.v)|round(2) }}">{{ v|money if v else "—" }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+
+<div class="grid-2">
+    <section class="card">
+        <h2 class="card-title">Largest expenses</h2>
+        {% if top %}
+        <ul class="tx-list">
+            {% for tx in top %}
+            <li class="tx-row">
+                <span class="rank">{{ loop.index }}</span>
+                <div class="tx-main"><span class="tx-desc">{{ tx.description or tx.category }}</span><span class="tx-meta">{{ tx.category }} · {{ tx.date }}</span></div>
+                <span class="amount amount-expense">{{ tx.amount_cents|money }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}<p class="empty">No expenses in this period.</p>{% endif %}
+    </section>
+    <section class="card">
+        <h2 class="card-title">Income sources</h2>
+        {% if income_categories %}
+        <ul class="bar-list">
+            {% for c in income_categories %}
+            <li>
+                <div class="bar-list-row"><span>{{ c.category }}</span><span class="num">{{ c.total|money }} <span class="muted">· {{ c.share|round|int }}%</span></span></div>
+                <div class="bar-track"><div class="bar-fill" style="width: {{ (c.total / income_categories[0].total * 100)|round(1) }}%"></div></div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}<p class="empty">No income recorded in this period.</p>{% endif %}
+    </section>
+</div>
+{% endif %}
+
+<script type="application/json" id="chart-data">{{ chart_data|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}
