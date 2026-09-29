@@ -15,6 +15,7 @@
     <a href="#profile" class="chip">Profile</a>
     {% if not current_user.is_demo %}<a href="#email" class="chip">Email</a>{% endif %}
     <a href="#appearance" class="chip">Appearance</a>
+    <a href="#install" class="chip">Install app</a>
     <a href="#security" class="chip">Security</a>
     <a href="#data" class="chip">Your data</a>
 </nav>
@@ -108,6 +109,28 @@
         </fieldset>
         <div class="form-actions"><button type="submit" class="btn-primary">Save appearance</button></div>
     </form>
+</section>
+
+<section class="card" id="install">
+    <h2 class="card-title">{{ m.icon("download", 18) }} Install on your phone</h2>
+    <p class="muted" data-install-installed hidden>{{ m.icon("check", 14) }} Spendly is installed and open as an app on this device.</p>
+    <div data-install-ready hidden>
+        <p class="muted">Add Spendly to your home screen so it opens like a normal app and appears in the Share menu of
+           Google Pay, PhonePe and Paytm.</p>
+        <div class="form-actions"><button type="button" class="btn-primary" data-install-app-now>{{ m.icon("download", 16) }} Install Spendly</button></div>
+    </div>
+    <div data-install-help>
+        <p class="muted">Your browser hasn't offered the install popup here. Install it from the browser menu instead:</p>
+        <ul class="install-help">
+            <li><strong>Android, Chrome:</strong> tap <strong>⋮</strong> at the right end of <em>Chrome's address bar</em>
+                (scroll up if you can't see it) → <strong>Add to Home screen</strong> → <strong>Install</strong>.</li>
+            <li><strong>Realme / Oppo / OnePlus:</strong> if nothing appears on the home screen, open phone
+                <strong>Settings → Apps → Chrome → Permissions</strong> and allow <strong>“Home screen shortcuts”</strong>
+                (sometimes called “Create desktop shortcuts”), then try again.</li>
+            <li><strong>Opened from WhatsApp / Gmail?</strong> Tap <strong>⋮ → Open in Chrome</strong> first. In-app browsers can't install.</li>
+            <li><strong>iPhone, Safari:</strong> tap <strong>Share □↑ → Add to Home Screen</strong>.</li>
+        </ul>
+    </div>
 </section>
 
 <section class="card" id="security">

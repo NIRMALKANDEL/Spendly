@@ -47,6 +47,7 @@
             <span class="brand-icon">◈</span><span class="brand-name">Spendly</span>
         </a>
         <div class="topbar-actions">
+            <button class="btn-ghost btn-sm install-pill" type="button" data-install-app hidden>{{ m.icon("download", 16) }}<span>Install</span></button>
             <button class="icon-btn" type="button" data-mode-toggle aria-label="Toggle dark mode">
                 <span class="when-light">{{ m.icon("moon", 18) }}</span><span class="when-dark">{{ m.icon("sun", 18) }}</span>
             </button>
@@ -73,6 +74,7 @@
                 {% endfor %}
             </nav>
             <div class="sidebar-foot">
+                <button type="button" class="side-link" data-install-app hidden>{{ m.icon("download") }}<span>Install app</span></button>
                 <div class="user-chip">
                     <span class="avatar" aria-hidden="true">{{ current_user.name[:1]|upper }}</span>
                     <div class="user-meta">
@@ -133,6 +135,7 @@
                 <button class="icon-btn" type="button" data-mode-toggle aria-label="Toggle dark mode">
                     <span class="when-light">{{ m.icon("moon", 18) }}</span><span class="when-dark">{{ m.icon("sun", 18) }}</span>
                 </button>
+                <button class="btn-ghost btn-sm" type="button" data-install-app hidden>{{ m.icon("download", 16) }} Install</button>
                 <a href="{{ url_for('auth.login') }}" class="hide-sm">Sign in</a>
                 <a href="{{ url_for('auth.register') }}" class="nav-cta">Get started</a>
             </div>

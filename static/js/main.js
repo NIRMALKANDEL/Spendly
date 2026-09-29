@@ -210,4 +210,44 @@
             navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(function () { /* optional */ });
         });
     }
+
+    // ---------------------------------------------------------------- //
+    // "Install app" buttons                                             //
+    // ---------------------------------------------------------------- //
+    // Chrome fires beforeinstallprompt when the site is installable; we keep the
+    // event and show our own buttons, so nobody has to hunt through browser menus.
+    var installPrompt = null;
+    var installButtons = $$("[data-install-app], [data-install-app-now]");
+    var installReady = $("[data-install-ready]");
+    var installHelp = $("[data-install-help]");
+    var installedNote = $("[data-install-installed]");
+    var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+
+    function renderInstallState() {
+        $$("[data-install-app]").forEach(function (b) { b.hidden = !installPrompt; });
+        if (installReady) installReady.hidden = !installPrompt;
+        if (installHelp) installHelp.hidden = !!installPrompt || standalone;
+        if (installedNote) installedNote.hidden = !standalone;
+    }
+
+    window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        installPrompt = e;
+        renderInstallState();
+    });
+    window.addEventListener("appinstalled", function () {
+        installPrompt = null;
+        renderInstallState();
+    });
+    installButtons.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            if (!installPrompt) {
+                window.location.href = "/settings/#install";
+                return;
+            }
+            installPrompt.prompt();
+            installPrompt.userChoice.finally(function () { installPrompt = null; renderInstallState(); });
+        });
+    });
+    renderInstallState();
 })();

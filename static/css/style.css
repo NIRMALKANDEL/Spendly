@@ -709,6 +709,10 @@ select.form-input { appearance: none; background-image: linear-gradient(45deg, t
     .drop-hint { display: none; }
 }
 
+/* Install app */
+.install-pill { padding: 0.35rem 0.7rem; gap: 0.3rem; }
+.install-help { margin: 0.5rem 0 0 1.1rem; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem; color: var(--ink-soft); }
+
 /* Flash messages */
 .flashes { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; }
 .flash {
