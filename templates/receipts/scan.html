@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+
+{% block title %}Scan a receipt — Spendly{% endblock %}
+
+{% block content %}
+<header class="page-head">
+    <div>
+        <p class="eyebrow"><a href="{{ url_for('transactions.index') }}" class="link">← Transactions</a></p>
+        <h1 class="page-title">Scan a receipt</h1>
+    </div>
+</header>
+
+<section class="card scan-card" data-scanner
+         data-ai="{{ '1' if ai else '0' }}"
+         data-worker-path="{{ url_for('static', filename='vendor/tesseract/worker.min.js') }}"
+         data-core-path="{{ url_for('static', filename='vendor/tesseract/core') }}"
+         data-lang-path="{{ url_for('static', filename='vendor/tesseract/lang') }}">
+
+    {% if error %}<div class="auth-error" role="alert" data-scan-error-static>{{ error }}</div>{% endif %}
+    <div class="auth-error" role="alert" data-scan-error hidden></div>
+
+    <div class="scan-drop" data-drop>
+        <div class="scan-drop-inner" data-drop-prompt>
+            <span class="scan-icon">{{ m.icon("scan", 28) }}</span>
+            <p class="scan-title">Add a payment screenshot or photo</p>
+            <p class="muted small">Google Pay, PhonePe, Paytm, BHIM, a bank SMS screenshot or a paper bill.</p>
+            <div class="button-row scan-buttons">
+                <label class="btn-primary">
+                    {{ m.icon("upload", 16) }} Choose image
+                    <input type="file" accept="image/*" data-file-input hidden>
+                </label>
+                <label class="btn-ghost">
+                    {{ m.icon("camera", 16) }} Take photo
+                    <input type="file" accept="image/*" capture="environment" data-file-input hidden>
+                </label>
+            </div>
+            <p class="muted small drop-hint">…or drag and drop an image here.</p>
+        </div>
+        <img class="scan-preview" alt="Receipt preview" data-preview hidden>
+    </div>
+
+    <div class="scan-status" data-status hidden>
+        <div class="progress"><div class="progress-bar status-accent" data-progress style="width: 0%"></div></div>
+        <p class="muted small" data-status-text aria-live="polite">Reading receipt…</p>
+    </div>
+
+    <p class="muted small scan-privacy">
+        {% if ai %}{{ m.icon("info", 14) }} The image is read by an AI service to find the amount, date and payee.
+        {% else %}{{ m.icon("check", 14) }} The image is read on this device and never uploaded. You'll check everything before it's saved.{% endif %}
+    </p>
+
+    {# Filled in by receipts.js, then submitted. #}
+    <form method="POST" action="{{ url_for('receipts.review') }}" enctype="multipart/form-data" data-review-form hidden>
+        {{ m.csrf() }}
+        <input type="hidden" name="mode" value="ocr">
+        <textarea name="text" hidden></textarea>
+        <input type="file" name="image" hidden>
+    </form>
+</section>
+
+<details class="card paste-card" {% if shared_text and not shared_image %}open{% endif %}>
+    <summary><span>{{ m.icon("list", 16) }} Paste payment text instead</span></summary>
+    <form method="POST" action="{{ url_for('receipts.review') }}" class="paste-form">
+        {{ m.csrf() }}
+        <input type="hidden" name="mode" value="text">
+        <label for="paste-text" class="muted small">Paste a bank SMS or the text a payment app shares, e.g.
+            “Paid ₹250 to Swiggy via Google Pay. UPI transaction ID: 425612345678”</label>
+        <textarea id="paste-text" name="text" class="form-input" rows="4" maxlength="20000" required>{{ shared_text }}</textarea>
+        <div class="form-actions"><button type="submit" class="btn-primary">Read text</button></div>
+    </form>
+</details>
+
+<section class="card tips-card">
+    <h2 class="card-title">{{ m.icon("info", 18) }} Share straight from your payment app (Android)</h2>
+    <ol class="steps">
+        <li>Open Spendly in <strong>Chrome</strong>, tap <strong>⋮ → Install app</strong> (or “Add to Home screen”).</li>
+        <li>After paying in GPay, PhonePe or Paytm, tap <strong>Share</strong> on the payment screen.</li>
+        <li>Pick <strong>Spendly</strong>. The receipt opens here, already read. Check it and tap Save.</li>
+    </ol>
+    <p class="muted small">On iPhone, take a screenshot of the payment and use <strong>Choose image</strong> above.</p>
+</section>
+
+{% if shared_image %}<img src="{{ shared_image }}" alt="" hidden data-shared-image>{% endif %}
+{% if shared_text %}<script type="application/json" id="shared-text">{{ shared_text|tojson }}</script>{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/tesseract/tesseract.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/receipts.js') }}"></script>
+{% endblock %}

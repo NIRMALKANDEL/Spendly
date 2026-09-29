@@ -10,6 +10,7 @@
         <h1 class="page-title">Transactions</h1>
     </div>
     <div class="page-actions">
+        <a href="{{ url_for('receipts.scan') }}" class="btn-ghost btn-sm">{{ m.icon("scan", 16) }} Scan receipt</a>
         <a href="{{ url_for('transactions.import_csv') }}" class="btn-ghost btn-sm">{{ m.icon("upload", 16) }} Import</a>
         <a href="{{ url_for('transactions.export_csv', **query_args) }}" class="btn-ghost btn-sm">{{ m.icon("download", 16) }} Export CSV</a>
         <a href="{{ url_for('transactions.create') }}" class="btn-primary btn-sm">{{ m.icon("plus", 16) }} Add</a>

@@ -1,21 +1,68 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m with context %}
 
-{% block title %}{{ "Edit" if tx else "Add" }} transaction — Spendly{% endblock %}
+{% block title %}{{ "Edit" if tx else ("Check receipt" if receipt else "Add") }} transaction — Spendly{% endblock %}
 
 {% block content %}
 <header class="page-head">
     <div>
-        <p class="eyebrow"><a href="{{ url_for('transactions.index') }}" class="link">← Transactions</a></p>
-        <h1 class="page-title">{{ "Edit transaction" if tx else "New transaction" }}</h1>
+        <p class="eyebrow"><a href="{{ url_for('receipts.scan') if receipt else url_for('transactions.index') }}" class="link">← {{ "Scan another" if receipt else "Transactions" }}</a></p>
+        <h1 class="page-title">{{ "Edit transaction" if tx else ("Check and save" if receipt else "New transaction") }}</h1>
     </div>
+    {% if not tx and not receipt %}
+    <div class="page-actions">
+        <a href="{{ url_for('receipts.scan') }}" class="btn-ghost btn-sm">{{ m.icon("scan", 16) }} Scan a receipt instead</a>
+    </div>
+    {% endif %}
 </header>
+
+<div class="{{ 'review-layout' if receipt else '' }}">
+{% if receipt %}
+<aside class="card receipt-panel">
+    <img class="receipt-thumb" alt="Your receipt" data-receipt-preview hidden>
+    {% if receipt.notice %}<p class="notice-warning">{{ m.icon("alert", 14) }} {{ receipt.notice }} Read from the text instead.</p>{% endif %}
+    {% if receipt.found is defined %}
+    <h2 class="card-title">{{ m.icon("spark", 16) }} What we found{% if receipt.app %} <span class="tag">{{ receipt.app }}</span>{% endif %}</h2>
+    <ul class="found-list">
+        {% for key, label in [("amount", "Amount"), ("date", "Date"), ("payee", "Paid to / from"), ("category", "Category"), ("reference", "UPI reference")] %}
+        <li class="{{ 'is-found' if key in receipt.found else 'is-missing' }}">
+            {{ m.icon("check" if key in receipt.found else "alert", 14) }}
+            <span>{{ label }}</span>
+            <span class="muted small">{{ "found" if key in receipt.found else ("defaulted" if key in ("date", "category") else "not found") }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    <p class="muted small">{{ "Read by AI." if receipt.method == "ai" else ("Read on your device." if receipt.method == "ocr" else "Read from the pasted text.") }}
+        Receipts can be misread, so <strong>check the amount and date</strong> before saving.</p>
+    {% if receipt.text %}
+    <details class="raw-text">
+        <summary class="small">Show recognised text</summary>
+        <pre>{{ receipt.text }}</pre>
+    </details>
+    {% endif %}
+    {% endif %}
+</aside>
+{% endif %}
 
 <section class="card form-card">
     {% if error %}<div class="auth-error" role="alert">{{ error }}</div>{% endif %}
+    {% if duplicate %}
+    <div class="notice-warning duplicate-notice" role="alert">
+        {{ m.icon("alert", 16) }}
+        <div>
+            <strong>Looks like you already saved this payment.</strong>
+            <p>{{ duplicate.amount_cents|money }} · {{ duplicate.description or duplicate.category }} · {{ duplicate.date }} —
+               <a class="link" href="{{ url_for('transactions.edit', tx_id=duplicate.id) }}">view it</a></p>
+        </div>
+    </div>
+    {% endif %}
     {% set kind = form.kind or "expense" %}
-    <form method="POST" data-tx-form>
+    <form method="POST" action="{{ url_for('transactions.edit', tx_id=tx.id) if tx else url_for('transactions.create') }}" data-tx-form>
         {{ m.csrf() }}
+        {% if receipt %}
+        <input type="hidden" name="source" value="receipt">
+        <input type="hidden" name="reference" value="{{ form.reference or '' }}">
+        {% endif %}
         <fieldset class="segmented" aria-label="Type">
             <label><input type="radio" name="kind" value="expense" {% if kind == 'expense' %}checked{% endif %}><span>Expense</span></label>
             <label><input type="radio" name="kind" value="income" {% if kind == 'income' %}checked{% endif %}><span>Income</span></label>
@@ -24,7 +71,8 @@
         <div class="form-group">
             <label for="amount">Amount ({{ currencies[current_user.currency][0] }})</label>
             <input type="text" inputmode="decimal" id="amount" name="amount" value="{{ form.amount or '' }}"
-                   class="form-input input-amount" placeholder="0.00" autocomplete="off" required autofocus>
+                   class="form-input input-amount{% if receipt and 'amount' not in (receipt.found or []) and receipt.found is defined %} needs-attention{% endif %}"
+                   placeholder="0.00" autocomplete="off" required autofocus>
         </div>
 
         <div class="form-row">
@@ -50,9 +98,13 @@
                    class="form-input" maxlength="200" placeholder="e.g. Dinner with friends">
         </div>
 
+        {% if duplicate %}
+        <label class="checkbox"><input type="checkbox" name="allow_duplicate" value="1"> It's a different payment — save it anyway</label>
+        {% endif %}
+
         <div class="form-actions">
-            <button type="submit" class="btn-primary">{{ "Save changes" if tx else "Add transaction" }}</button>
-            {% if not tx %}<button type="submit" name="add_another" value="1" class="btn-ghost">Save &amp; add another</button>{% endif %}
+            <button type="submit" class="btn-primary">{{ "Save changes" if tx else ("Save " ~ kind if receipt else "Add transaction") }}</button>
+            {% if not tx %}<button type="submit" name="add_another" value="1" class="btn-ghost">{{ "Save & scan another" if receipt else "Save & add another" }}</button>{% endif %}
             <a href="{{ url_for('transactions.index') }}" class="btn-ghost">Cancel</a>
         </div>
     </form>
@@ -63,4 +115,5 @@
     </form>
     {% endif %}
 </section>
+</div>
 {% endblock %}

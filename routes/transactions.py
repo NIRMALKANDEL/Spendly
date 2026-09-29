@@ -1,6 +1,7 @@
 import csv
 import io
 import math
+import re
 from datetime import timedelta
 
 from flask import (
@@ -54,7 +55,20 @@ def validate_transaction(data):
         "category": match,
         "date": day.isoformat(),
         "description": description,
+        # UPI transaction ID from a scanned receipt; letters and digits only.
+        "reference": re.sub(r"[^A-Za-z0-9]", "", data.get("reference") or "")[:40] or None,
     }, None
+
+
+def find_duplicate(user_id, reference):
+    """An existing transaction with the same UPI reference, if any."""
+    if not reference:
+        return None
+    return get_db().execute(
+        "SELECT id, date, amount_cents, description, category FROM transactions"
+        " WHERE user_id = ? AND reference = ? ORDER BY id LIMIT 1",
+        (user_id, reference),
+    ).fetchone()
 
 
 def get_owned_transaction(tx_id):
@@ -143,13 +157,15 @@ def index():
     )
 
 
-def render_form(tx=None, form=None, error=None, status=200):
+def render_form(tx=None, form=None, error=None, status=200, receipt=None, duplicate=None):
     return render_template(
         "transactions/form.html",
         tx=tx,
         form=form,
         error=error,
         categories=CATEGORIES,
+        receipt=receipt,
+        duplicate=duplicate,
     ), status
 
 
@@ -158,17 +174,26 @@ def render_form(tx=None, form=None, error=None, status=200):
 def create():
     if request.method == "POST":
         clean, error = validate_transaction(request.form)
+        from_receipt = request.form.get("source") == "receipt"
         if error:
-            return render_form(form=request.form, error=error, status=400)
+            return render_form(form=request.form, error=error, status=400,
+                               receipt={"source": "receipt"} if from_receipt else None)
+        duplicate = find_duplicate(g.user["id"], clean["reference"])
+        if duplicate and not request.form.get("allow_duplicate"):
+            return render_form(form=request.form, status=409, duplicate=duplicate,
+                               receipt={"source": "receipt"} if from_receipt else None,
+                               error="You've already saved a payment with this UPI reference.")
         db = get_db()
         db.execute(
-            "INSERT INTO transactions (user_id, kind, amount_cents, category, date, description)"
-            " VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO transactions (user_id, kind, amount_cents, category, date, description, reference)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)",
             (g.user["id"], clean["kind"], clean["amount_cents"], clean["category"], clean["date"],
-             clean["description"]),
+             clean["description"], clean["reference"]),
         )
         db.commit()
         flash(f"{clean['kind'].title()} added.", "success")
+        if from_receipt and request.form.get("add_another"):
+            return redirect(url_for("receipts.scan"))
         if request.form.get("add_another"):
             return redirect(url_for("transactions.create", kind=clean["kind"]))
         return redirect(url_for("transactions.index"))

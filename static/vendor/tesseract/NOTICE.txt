@@ -1,0 +1,7 @@
+Tesseract.js 5.1.1, tesseract.js-core 5.1.1 and the English LSTM model
+(@tesseract.js-data/eng 4.0.0_best_int) are vendored here unmodified so the
+app's Content-Security-Policy can stay 'self'-only.
+
+Licensed under the Apache License, Version 2.0:
+https://github.com/naptha/tesseract.js/blob/master/LICENSE.md
+https://github.com/tesseract-ocr/tessdata_best/blob/main/LICENSE

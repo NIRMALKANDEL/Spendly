@@ -70,5 +70,12 @@ class Config:
     BACKUP_KEEP = int(os.environ.get("BACKUP_KEEP", "14"))
     AUTO_BACKUP = _env_flag("AUTO_BACKUP", True)
 
+    # Receipt scanning. On-device OCR always works; set RECEIPT_AI_PROVIDER=anthropic
+    # plus ANTHROPIC_API_KEY to read receipt images with Claude instead.
+    RECEIPT_AI_PROVIDER = os.environ.get("RECEIPT_AI_PROVIDER", "").strip().lower()
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+    RECEIPT_AI_MODEL = os.environ.get("RECEIPT_AI_MODEL", "claude-opus-5-5")
+    SHARE_MAX_BYTES = 12 * 1024 * 1024  # images shared from payment apps
+
     # Shown on the privacy page so users know whom to contact.
     CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL")

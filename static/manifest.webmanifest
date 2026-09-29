@@ -1,11 +1,32 @@
 {
+  "id": "/",
   "name": "Spendly — Personal Finance Tracker",
   "short_name": "Spendly",
+  "description": "Track expenses, budgets and savings goals. Share payment receipts to log them.",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f7f6f3",
   "theme_color": "#1a472a",
   "icons": [
+    { "src": "/static/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/static/img/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "/static/img/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
-  ]
+  ],
+  "shortcuts": [
+    { "name": "Scan receipt", "url": "/receipts/scan", "icons": [{ "src": "/static/img/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Add expense", "url": "/transactions/new", "icons": [{ "src": "/static/img/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "share_target": {
+    "action": "/receipts/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [{ "name": "receipt", "accept": ["image/*", "image/png", "image/jpeg", "image/webp"] }]
+    }
+  }
 }

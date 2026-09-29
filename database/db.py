@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     date         TEXT    NOT NULL,
     description  TEXT    NOT NULL DEFAULT '',
     recurring_id INTEGER REFERENCES recurring(id) ON DELETE SET NULL,
+    reference    TEXT,
     created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions (user_id, date);
@@ -96,6 +97,7 @@ def close_db(_exc=None):
 MIGRATIONS = [
     ("users", "email_verified", "INTEGER NOT NULL DEFAULT 0"),
     ("users", "verification_sent_at", "TEXT"),
+    ("transactions", "reference", "TEXT"),  # UPI transaction ID, used to spot duplicate receipts
 ]
 
 
@@ -104,6 +106,7 @@ def migrate(db):
         existing = {row["name"] for row in db.execute(f"PRAGMA table_info({table})")}
         if column not in existing:
             db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_transactions_user_reference ON transactions (user_id, reference)")
 
 
 def init_db():

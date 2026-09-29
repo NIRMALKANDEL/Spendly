@@ -6,11 +6,12 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import INSTANCE_DIR, Config, load_secret_key
 from database import db as database
-from routes import analytics, auth, budgets, goals, main, recurring, settings, transactions
+from routes import analytics, auth, budgets, goals, main, receipts, recurring, settings, transactions
 from services import categories
 from services.backup import ensure_daily_backup
 from services.dates import today
 from services.mailer import mail_enabled
+from services.receipt_ai import ai_enabled as receipt_ai_enabled
 from services.money import cents_to_input, format_money
 from services.recurring import run_due
 from services.security import csrf_protect, csrf_token, set_security_headers
@@ -34,7 +35,7 @@ def create_app(test_config=None):
 
     database.init_app(app)
 
-    for module in (auth, main, transactions, budgets, goals, recurring, analytics, settings):
+    for module in (auth, main, transactions, receipts, budgets, goals, recurring, analytics, settings):
         app.register_blueprint(module.bp)
 
     @app.before_request
@@ -62,6 +63,7 @@ def create_app(test_config=None):
             "currencies": categories.CURRENCIES,
             "mail_enabled": mail_enabled(),
             "contact_email": app.config.get("CONTACT_EMAIL"),
+            "receipt_ai": receipt_ai_enabled(),
         }
 
     @app.template_filter("money")

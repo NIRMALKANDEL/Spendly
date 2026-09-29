@@ -10,6 +10,7 @@
         <h1 class="page-title">Hello, {{ current_user.name.split()[0] }}</h1>
     </div>
     <div class="page-actions">
+        <a href="{{ url_for('receipts.scan') }}" class="btn-ghost btn-sm">{{ m.icon("scan", 16) }} Scan receipt</a>
         <a href="{{ url_for('transactions.create', kind='income') }}" class="btn-ghost btn-sm">{{ m.icon("plus", 16) }} Income</a>
         <a href="{{ url_for('transactions.create') }}" class="btn-primary btn-sm">{{ m.icon("plus", 16) }} Expense</a>
     </div>

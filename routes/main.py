@@ -1,4 +1,4 @@
-from flask import Blueprint, g, redirect, render_template, url_for
+from flask import Blueprint, current_app, g, redirect, render_template, send_from_directory, url_for
 
 from database.db import get_db
 from services import analytics
@@ -97,3 +97,13 @@ def privacy():
 @bp.route("/terms")
 def terms():
     return render_template("legal/terms.html")
+
+
+@bp.route("/sw.js")
+def service_worker():
+    """Served from the root so its scope covers the whole app (needed for the share target)."""
+    response = send_from_directory(current_app.static_folder, "js/sw.js", mimetype="application/javascript",
+                                   max_age=0)
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response

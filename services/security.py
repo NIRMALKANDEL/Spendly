@@ -11,6 +11,8 @@ from flask import abort, current_app, g, redirect, request, session, url_for
 
 CSRF_SESSION_KEY = "_csrf"
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+# The OS share sheet posts here without our token; the view only renders a page.
+CSRF_EXEMPT_ENDPOINTS = {"receipts.share"}
 
 
 # ------------------------------------------------------------------ #
@@ -27,7 +29,7 @@ def csrf_token():
 
 def csrf_protect():
     """Reject state-changing requests whose token does not match the session."""
-    if request.method not in UNSAFE_METHODS:
+    if request.method not in UNSAFE_METHODS or request.endpoint in CSRF_EXEMPT_ENDPOINTS:
         return
     expected = session.get(CSRF_SESSION_KEY)
     sent = request.form.get("csrf_token") or request.headers.get("X-CSRFToken")
@@ -117,7 +119,10 @@ email_ip_throttle = LoginThrottle("EMAIL_IP_MAX_PER_WINDOW", "LOGIN_WINDOW_SECON
 
 CONTENT_SECURITY_POLICY = "; ".join([
     "default-src 'self'",
-    "script-src 'self'",
+    # wasm-unsafe-eval only permits compiling WebAssembly (on-device receipt OCR),
+    # not eval() of JavaScript.
+    "script-src 'self' 'wasm-unsafe-eval'",
+    "worker-src 'self'",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data:",

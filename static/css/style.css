@@ -664,6 +664,51 @@ select.form-input { appearance: none; background-image: linear-gradient(45deg, t
 .legal ul { margin: 0.25rem 0 0.5rem 1.25rem; }
 .legal li { margin-bottom: 0.35rem; }
 
+/* Receipt scanning */
+.scan-drop {
+    border: 2px dashed var(--border); border-radius: var(--radius-md); padding: 2rem 1.25rem;
+    text-align: center; background: var(--paper); transition: border-color 0.2s, background 0.2s;
+}
+.scan-drop.dragging { border-color: var(--accent); background: var(--accent-light); }
+.scan-drop-inner { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+.scan-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--accent-light); color: var(--accent-text, var(--accent));
+             display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; }
+.scan-title { font-weight: 600; font-size: 1.05rem; }
+.scan-buttons { justify-content: center; margin-top: 0.75rem; }
+.scan-buttons label { cursor: pointer; }
+.scan-preview { max-height: 360px; max-width: 100%; margin: 0 auto; border-radius: var(--radius-sm); box-shadow: var(--shadow); }
+.scan-status { margin-top: 1rem; }
+.scan-status p { margin-top: 0.5rem; }
+.scan-privacy { margin-top: 1rem; display: flex; align-items: center; gap: 0.35rem; }
+.paste-card summary { cursor: pointer; font-weight: 600; list-style: none; }
+.paste-card summary > span { display: inline-flex; gap: 0.5rem; align-items: center; }
+.paste-card summary::-webkit-details-marker { display: none; }
+.paste-form { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.paste-form textarea { min-height: 110px; resize: vertical; }
+.review-layout { display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 640px); gap: 1.25rem; align-items: start; }
+.review-layout .card { margin-bottom: 0; }
+.receipt-thumb { width: 100%; max-height: 420px; object-fit: contain; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 1rem; background: #fff; }
+.found-list { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.9rem; }
+.found-list li { display: grid; grid-template-columns: auto 1fr auto; gap: 0.5rem; align-items: center; font-size: 0.875rem; }
+.found-list .is-found .icon { color: var(--good); }
+.found-list .is-missing .icon { color: var(--warning); }
+.raw-text summary { cursor: pointer; color: var(--ink-muted); margin-top: 0.75rem; }
+.raw-text pre { white-space: pre-wrap; word-break: break-word; font-size: 0.75rem; background: var(--paper-warm); padding: 0.75rem; border-radius: var(--radius-sm); max-height: 240px; overflow: auto; margin-top: 0.5rem; }
+.notice-warning { display: flex; gap: 0.6rem; align-items: flex-start; background: var(--warning-bg); color: var(--warning); border-radius: var(--radius-sm); padding: 0.75rem 0.9rem; font-size: 0.875rem; margin-bottom: 1rem; }
+.notice-warning p { color: var(--ink-soft); margin-top: 0.15rem; }
+.needs-attention { border-color: var(--warning); box-shadow: 0 0 0 3px var(--warning-bg); }
+.receipt-thumb { width: auto; max-width: 100%; display: block; margin-left: auto; margin-right: auto; }
+@media (max-width: 900px) {
+    /* On phones the form comes first: check the amount, tap Save. */
+    .review-layout { grid-template-columns: 1fr; }
+    .review-layout .receipt-panel { order: 2; }
+    .receipt-thumb { max-height: 180px; }
+    .found-list { flex-direction: row; flex-wrap: wrap; gap: 0.35rem 0.9rem; }
+    .found-list li { display: flex; gap: 0.3rem; }
+    .found-list li .muted { display: none; }
+    .drop-hint { display: none; }
+}
+
 /* Flash messages */
 .flashes { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; }
 .flash {

@@ -15,7 +15,7 @@ plan savings goals and run “what if” calculations. Editable themes, dark mod
 ![flask](https://img.shields.io/badge/flask-3.1-000000?logo=flask)
 ![sqlite](https://img.shields.io/badge/sqlite-003B57?logo=sqlite&logoColor=white)
 ![chart.js](https://img.shields.io/badge/chart.js-4-FF6384?logo=chartdotjs&logoColor=white)
-![tests](https://img.shields.io/badge/tests-150%20passing-2ea44f)
+![tests](https://img.shields.io/badge/tests-217%20passing-2ea44f)
 ![coverage](https://img.shields.io/badge/coverage-96%25-2ea44f)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 
@@ -62,6 +62,17 @@ plan savings goals and run “what if” calculations. Editable themes, dark mod
 - Change email (re-verified) and password; changing or resetting a password signs out every other device
 - Export everything (CSV/JSON) or delete the account and all its data
 - Privacy policy and terms of use pages
+
+**Receipt scanning**
+- **Scan or share a payment receipt** (Google Pay, PhonePe, Paytm, BHIM, bank SMS, paper bill) and Spendly fills in
+  the amount, date, payee, category and UPI reference; you check it and tap Save
+- **Share straight from payment apps on Android**: install Spendly from Chrome and it appears in the Share menu
+  (Web Share Target + service worker)
+- **Private by default**: text recognition runs **on the device** (Tesseract.js / WebAssembly); the image never
+  leaves the phone
+- **Duplicate protection**: sharing the same receipt twice is caught by its UPI reference
+- Tuned on real OCR quirks: ₹ misread as %, ¥, £ or a stray digit, amounts glued to names, huge headline digits
+- Optional **AI reader (Claude)** for messy bills: off by default, enabled by two environment variables
 
 **Tracking**
 - Expenses **and** income with categories, dates and notes; add / edit / delete
@@ -117,7 +128,8 @@ plan savings goals and run “what if” calculations. Editable themes, dark mod
 
 - **Backend:** Python 3.12, Flask 3 (application factory + blueprints), SQLite (foreign keys, cascading deletes, indexes)
 - **Frontend:** server-rendered Jinja templates, hand-written CSS with design tokens, vanilla JS, Chart.js 4
-- **Testing:** pytest — 150 tests, ~96% coverage (SMTP tested against a fake server), GitHub Actions CI
+- **Testing:** pytest — 217 tests, ~96% coverage (SMTP and Claude tested against fakes), plus an end-to-end
+  check that runs real OCR on mock GPay / PhonePe / Paytm screenshots in headless Chrome
 - **Deploy:** Gunicorn; configs for Render and PythonAnywhere
 
 Money is stored as **integer paise/cents** so totals never suffer floating-point drift.
@@ -174,6 +186,9 @@ pytest --cov=.
 | `CONTACT_EMAIL` | unset | Shown on the privacy/terms pages |
 | `BACKUP_DIR` / `BACKUP_KEEP` | `instance/backups` / `14` | Where daily snapshots go and how many to keep |
 | `AUTO_BACKUP` | on | Take a snapshot automatically on the first request each day |
+| `RECEIPT_AI_PROVIDER` | unset | Set to `anthropic` to read receipt images with Claude instead of on-device OCR |
+| `ANTHROPIC_API_KEY` | unset | API key from console.anthropic.com (only needed with `RECEIPT_AI_PROVIDER`) |
+| `RECEIPT_AI_MODEL` | `claude-opus-5-5` | Model used by the AI receipt reader |
 
 ## Deploy
 
@@ -232,6 +247,33 @@ then **Reload** on the Web tab. Database changes are migrated automatically on s
 Render's free plan has **no persistent disk**, so the database resets on each redeploy and the app sleeps
 after 15 minutes idle (first visit then takes ~30s). That's fine for a portfolio demo — the “Try the live demo”
 button always works — but use PythonAnywhere (or add a Render disk) for real personal data.
+
+## Receipt scanning: how it works
+
+```
+screenshot / photo / Android share
+        │
+        ▼
+/receipts/scan  ── Tesseract.js in the browser (2 passes: 1000px + 500px, sparse-text mode)
+        │ recognised text only
+        ▼
+/receipts/review ── services/receipts.py parses amount · date · payee · UPI ref · category
+        │           (or, with RECEIPT_AI_PROVIDER=anthropic, Claude reads the image; its JSON is re-validated)
+        ▼
+pre-filled transaction form ── you confirm ── saved (duplicate UPI reference → warning)
+```
+
+**Turning on the AI reader (Option B).** Create an API key at [console.anthropic.com](https://console.anthropic.com),
+then add to the WSGI file on PythonAnywhere and reload:
+
+```python
+os.environ["RECEIPT_AI_PROVIDER"] = "anthropic"
+os.environ["ANTHROPIC_API_KEY"] = "<your key>"
+```
+
+Each receipt costs a small amount of API usage. If the AI call fails, the app tells the user and they can scan on
+the device instead. Note: PythonAnywhere's free plan only allows outbound requests to whitelisted sites. Check that
+`api.anthropic.com` is reachable from your account before relying on it.
 
 ## Roadmap ideas
 

@@ -190,4 +190,24 @@
             btn.textContent = table.hidden ? "Show table" : "Hide table";
         });
     });
+
+    // ---------------------------------------------------------------- //
+    // Receipt preview on the review form                                //
+    // ---------------------------------------------------------------- //
+    var receiptThumb = $("[data-receipt-preview]");
+    if (receiptThumb) {
+        try {
+            var saved = sessionStorage.getItem("spendly-receipt-preview");
+            if (saved && saved.indexOf("data:image/") === 0) { receiptThumb.src = saved; receiptThumb.hidden = false; }
+        } catch (e) { /* ignore */ }
+    }
+
+    // ---------------------------------------------------------------- //
+    // Service worker: makes Spendly installable and a share target      //
+    // ---------------------------------------------------------------- //
+    if ("serviceWorker" in navigator && window.isSecureContext) {
+        window.addEventListener("load", function () {
+            navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(function () { /* optional */ });
+        });
+    }
 })();

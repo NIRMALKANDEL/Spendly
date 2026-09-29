@@ -21,6 +21,17 @@
     </ul>
     <p>We do <strong>not</strong> connect to your bank, ask for card or account numbers, or use advertising or tracking cookies.</p>
 
+    <h2>Receipt scanning</h2>
+    {% if receipt_ai %}
+    <p>When you scan or share a receipt, the image is sent to our AI provider (Anthropic) only to read the amount,
+       date and payee. Spendly doesn't keep the image. Only the transaction you choose to save is stored.</p>
+    {% else %}
+    <p>When you scan or share a receipt, the image is read <strong>on your own device</strong>. Only the recognised
+       text is sent to our server, to fill in the form. (If you share a receipt from another app before Spendly is
+       fully installed, the image passes through our server once to reach the scan page; it is not stored.)
+       Only the transaction you choose to save is kept.</p>
+    {% endif %}
+
     <h2>How we use it</h2>
     <ul>
         <li>To show you your dashboard, analytics, budgets and goals.</li>
